@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Supabase Gaming Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <style>
+    body { font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#f4f6f8;color:#232323;}
+    .navbar {background:#0c2238;color:#fff;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;}
+    .navbar h1 {margin:0;font-size:2rem;letter-spacing:1px;}
+    .nav-tabs {display:flex;gap:1rem;}
+    .nav-tabs button {background:none;border:none;color:#fff;font-size:1rem;padding:0.5rem 1.2rem;cursor:pointer;border-bottom:2px solid transparent;transition:border .2s;}
+    .nav-tabs .active {border-bottom:2.5px solid #ffc300;color:#ffc300;}
+    .dashboard-content {max-width:1200px;margin:2rem auto;background:#fff;border-radius:1rem;box-shadow:0 2px 30px rgba(30,60,90,0.07);padding:2rem 2.5rem;}
+    .summary-cards {display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.7rem;}
+    .summary-card {flex:1 1 170px;background:#f8fafc;border-radius:0.8rem;padding:1.1rem 1.3rem;box-shadow:0 2px 8px rgba(0,0,0,0.05);text-align:left;min-width:170px;}
+    .summary-card h3 {margin:0 0 0.2rem 0;font-size:1.2rem;color:#5571b1;}
+    .summary-card .value {font-size:1.5rem;color:#0c2238;font-weight:600;}
+    .filters {display:flex;gap:1rem;align-items:flex-end;margin-bottom:1rem;flex-wrap:wrap;}
+    .filters label {font-size:0.97rem;margin-bottom:0.2rem;color:#5a5a5a;}
+    .filters input,.filters select {padding:0.4rem 0.8rem;border:1px solid #b0becb;border-radius:0.4rem;font-size:1rem;background:#f8fafc;}
+    .filters button {background:#0c2238;color:#fff;padding:0.45rem 1.3rem;border:none;border-radius:0.4rem;font-size:1rem;cursor:pointer;margin-top:0.7rem;}
+    .main-table {width:100%;border-collapse:collapse;background:#fff;margin-bottom:1.5rem;}
+    .main-table th,.main-table td {border-bottom:1px solid #e0e3e7;padding:0.8rem 0.7rem;text-align:left;font-size:0.99rem;}
+    .main-table th {background:#f3f4f9;color:#35599e;font-weight:500;}
+    .main-table tr:hover {background:#f7f9fc;}
+    .table-action-btn {background:#ffc300;color:#0c2238;border:none;border-radius:0.4rem;padding:0.35rem 1rem;font-size:0.98rem;cursor:pointer;margin-right:0.5rem;transition:background .2s;}
+    .table-action-btn.danger {background:#d82c2c;color:#fff;}
+    .details-modal-bg {display:none;position:fixed;z-index:98;left:0;top:0;width:100vw;height:100vh;background:rgba(32,44,60,0.14);justify-content:center;align-items:flex-start;overflow-y:auto;}
+    .details-modal-bg.active {display:flex;}
+    .details-modal {background:#fff;border-radius:1rem;box-shadow:0 2px 38px rgba(0,0,0,0.18);padding:2rem 2.3rem;margin-top:3rem;min-width:350px;max-width:90vw;max-height:90vh;overflow-y:auto;position:relative;z-index:100;}
+    .details-modal h2 {font-size:1.3rem;margin:0 0 1.2rem 0;color:#35599e;}
+    .details-modal pre {background:#f5f5f5;border-radius:0.4rem;padding:0.7rem;white-space:pre-wrap;font-size:0.97rem;overflow-x:auto;margin-bottom:0.8rem;}
+    .modal-close-btn {position:absolute;top:1.1rem;right:1.3rem;background:#d82c2c;color:#fff;border:none;border-radius:50%;width:2.2rem;height:2.2rem;font-size:1.2rem;text-align:center;cursor:pointer;z-index:200;}
+    .section-title {font-size:1.18rem;color:#35599e;margin:1.6rem 0 0.4rem 0;font-weight:500;}
+    .chart-container {width:100%;max-width:600px;margin:1.5rem 0;}
+    .search-bar {display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;}
+    .search-bar input {flex:1;font-size:1rem;}
+    .search-bar button {background:#35599e;color:#fff;padding:0.45rem 1.3rem;border:none;border-radius:0.4rem;font-size:1rem;cursor:pointer;}
+    .label-badge {display:inline-block;background:#e7eefe;color:#3f679e;border-radius:0.3rem;font-size:0.90rem;padding:0.15rem 0.6rem;margin-right:0.35rem;margin-bottom:0.2rem;}
+    .tab-alert {background:#fff9c4;color:#7e7105;padding:0.6rem 1rem;border-radius:0.4rem;margin-bottom:1.1rem;}
+    .status-badge {display:inline-block;padding:0.1rem 0.7rem;border-radius:0.3rem;font-size:0.92rem;}
+    .status-badge.pending {background:#ffe0b2;color:#a36b08;}
+    .status-badge.accepted {background:#c8e6c9;color:#237e1e;}
+    .status-badge.rejected {background:#ffcdd2;color:#b71c1c;}
+    .player-stats-summary {margin:1rem 0 1.5rem 0;display:flex;gap:1.1rem;flex-wrap:wrap;}
+    .player-stats-summary div {background:#f3f6fa;padding:0.75rem 1.1rem;border-radius:0.5rem;}
+    @media (max-width:800px){.dashboard-content{padding:1rem 0.6rem;}.summary-cards{flex-direction:column;gap:0.7rem;}.filters{flex-direction:column;gap:0.5rem;}}
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>🎮 Admin Dashboard (ETB)</h1>
+    <div class="nav-tabs">
+      <button class="active" data-tab="dashboard">Dashboard</button>
+      <button data-tab="players">Players</button>
+      <button data-tab="card_games">Card Games</button>
+      <button data-tab="chess_games">Chess Games</button>
+      <button data-tab="guess_number_games">Guess Number</button>
+      <button data-tab="deposits_withdraws">Deposit & Withdraw</button>
+      <button data-tab="search">Game Code Search</button>
+    </div>
+  </div>
+  <div class="dashboard-content" id="tab-dashboard"></div>
+  <div class="dashboard-content" style="display:none" id="tab-players"></div>
+  <div class="dashboard-content" style="display:none" id="tab-card_games"></div>
+  <div class="dashboard-content" style="display:none" id="tab-chess_games"></div>
+  <div class="dashboard-content" style="display:none" id="tab-guess_number_games"></div>
+  <div class="dashboard-content" style="display:none" id="tab-deposits_withdraws"></div>
+  <div class="dashboard-content" style="display:none" id="tab-search"></div>
+  <div class="details-modal-bg" id="details-modal-bg">
+    <div class="details-modal" id="details-modal">
+      <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+<script>
+const supabaseUrl = 'https://evberyanshxxalxtwnnc.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2YmVyeWFuc2h4eGFseHR3bm5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwODMwOTcsImV4cCI6MjA1OTY1OTA5N30.pEoPiIi78Tvl5URw0Xy_vAxsd-3XqRlC8FTnX9HpgMw';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+const ETB = (amount) => 'ETB ' + Number(amount).toLocaleString('en-ET', {minimumFractionDigits:2, maximumFractionDigits:2});
+const formatDate = (d) => {
+  if (!d) return '';
+  const dt = new Date(d); 
+  return dt.toLocaleString('en-GB', { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+};
+
+const showTab = (tab) => {
+  document.querySelectorAll('.dashboard-content').forEach(e=>e.style.display='none');
+  document.getElementById('tab-' + tab).style.display = '';
+  document.querySelectorAll('.nav-tabs button').forEach(btn=>btn.classList.remove('active'));
+  document.querySelector('.nav-tabs button[data-tab="'+tab+'"]').classList.add('active');
+  if (tab === 'dashboard') loadDashboard();
+  if (tab === 'players') loadPlayers();
+  if (tab === 'card_games') loadGames('card_games');
+  if (tab === 'chess_games') loadGames('chess_games');
+  if (tab === 'guess_number_games') loadGames('guess_number_games');
+  if (tab === 'deposits_withdraws') loadDepositsWithdraws();
+  if (tab === 'search') loadGameSearch();
+};
+
+document.querySelectorAll('.nav-tabs button').forEach(btn => {
+  btn.onclick = () => showTab(btn.getAttribute('data-tab'));
+});
+
+window.closeModal = function() {
+  document.getElementById('details-modal-bg').classList.remove('active');
+};
+
+function showModal(title, html) {
+  document.getElementById('modal-content').innerHTML =
+    `<h2>${title}</h2>` + html;
+  document.getElementById('details-modal-bg').classList.add('active');
+}
+
+// ---- DASHBOARD ----
+async function loadDashboard() {
+  const el = document.getElementById('tab-dashboard');
+  el.innerHTML = `<div>Loading summary...</div>`;
+  const today = new Date();
+  const dayStr = today.toISOString().slice(0,10);
+  const startOfDay = dayStr + 'T00:00:00+00:00';
+  const endOfDay = dayStr + 'T23:59:59+00:00';
+
+  // Queries
+  const [
+    { data: depositsToday }, { data: withdrawalsToday },
+    { data: totalBalances }, { data: houseBalance },
+    { data: houseBalanceStart }, { data: houseBalanceEnd },
+    { data: cardGamesToday }, { data: chessGamesToday }, { data: guessGamesToday },
+    { data: allTransactions }, { data: allGamesCard }, { data: allGamesChess }, { data: allGamesGuess }
+  ] = await Promise.all([
+    supabase.from('player_transactions').select('amount').eq('type', 'deposit').eq('status', 'accepted').gte('created_at', startOfDay).lte('created_at', endOfDay),
+    supabase.from('player_transactions').select('amount').eq('type', 'withdrawal').eq('status', 'accepted').gte('created_at', startOfDay).lte('created_at', endOfDay),
+    supabase.from('users').select('balance'),
+    supabase.from('house_balance').select('balance').order('id', {ascending: false}).limit(1),
+    supabase.from('house_balance').select('balance,created_at').order('created_at', {ascending:true}).gte('created_at', startOfDay).limit(1),
+    supabase.from('house_balance').select('balance,created_at').order('created_at', {ascending:false}).lte('created_at', endOfDay).limit(1),
+    supabase.from('card_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay),
+    supabase.from('chess_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay),
+    supabase.from('guess_number_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay),
+    supabase.from('player_transactions').select('amount, type, created_at, status'),
+    supabase.from('card_games').select('id, created_at'),
+    supabase.from('chess_games').select('id, created_at'),
+    supabase.from('guess_number_games').select('id, created_at')
+  ]);
+
+  const totalDepositsToday = (depositsToday||[]).reduce((sum, tx)=>sum + (Number(tx.amount)||0), 0);
+  const totalWithdrawalsToday = (withdrawalsToday||[]).reduce((sum, tx)=>sum + (Number(tx.amount)||0), 0);
+  const sumTotalBalances = (totalBalances||[]).reduce((sum, u)=>sum + (Number(u.balance)||0), 0);
+  const houseBal = (houseBalance||[])[0]?.balance ?? 0;
+  const houseBalStart = (houseBalanceStart||[])[0]?.balance ?? houseBal;
+  const houseBalEnd = (houseBalanceEnd||[])[0]?.balance ?? houseBal;
+  const houseBalChange = houseBalEnd - houseBalStart;
+
+  // Today's games (feature 2)
+  const todayGames = [
+    ...((cardGamesToday||[]).map(g=>({type:'Card', ...g}))),
+    ...((chessGamesToday||[]).map(g=>({type:'Chess', ...g}))),
+    ...((guessGamesToday||[]).map(g=>({type:'Guess', ...g})))
+  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
+  // Game types played today
+  const gamesPlayedTypes = [];
+  if ((cardGamesToday||[]).length) gamesPlayedTypes.push('Card Game');
+  if ((chessGamesToday||[]).length) gamesPlayedTypes.push('Chess Game');
+  if ((guessGamesToday||[]).length) gamesPlayedTypes.push('Guess Number Game');
+
+  el.innerHTML = `
+    <div class="summary-cards">
+      <div class="summary-card">
+        <h3>Deposits Today</h3>
+        <div class="value">${ETB(totalDepositsToday||0)}</div>
+      </div>
+      <div class="summary-card">
+        <h3>Withdrawals Today</h3>
+        <div class="value">${ETB(totalWithdrawalsToday||0)}</div>
+      </div>
+      <div class="summary-card">
+        <h3>House Balance</h3>
+        <div class="value">${ETB(houseBal||0)}</div>
+      </div>
+      <div class="summary-card">
+        <h3>House Balance Change</h3>
+        <div class="value">${ETB(houseBalChange)}</div>
+      </div>
+      <div class="summary-card">
+        <h3>Games Played Today</h3>
+        <div class="value">${todayGames.length}</div>
+        <div style="font-size:0.97rem;color:#888;">${gamesPlayedTypes.join(', ')||'None'}</div>
+      </div>
+    </div>
+    <div class="section-title">Today's Games</div>
+    <table class="main-table">
+      <thead>
+        <tr><th>Game Type</th><th>Code</th><th>Players</th><th>Bet</th><th>Status</th><th>Winner</th><th>Created At</th></tr>
+      </thead>
+      <tbody>
+        ${(todayGames||[]).map(g=>`
+          <tr>
+            <td>${g.type}</td>
+            <td>${g.code}</td>
+            <td>${g.creator_username||g.white_username||'-'}${g.opponent_username||g.black_username?` vs ${g.opponent_username||g.black_username}`:''}</td>
+            <td>${ETB(g.bet)}</td>
+            <td>${g.status}</td>
+            <td>${g.winner||'-'}</td>
+            <td>${formatDate(g.created_at)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <div class="chart-container">
+      <canvas id="txChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="gameChart"></canvas>
+    </div>
+  `;
+
+  // Charts
+  const allTxs = allTransactions || [];
+  const txPerDay = {};
+  allTxs.forEach(tx=>{
+    const day = tx.created_at.slice(0,10);
+    txPerDay[day] = txPerDay[day] || {deposit:0, withdrawal:0};
+    if (tx.status!=='accepted') return;
+    if (tx.type==='deposit') txPerDay[day].deposit += Number(tx.amount)||0;
+    if (tx.type==='withdrawal') txPerDay[day].withdrawal += Number(tx.amount)||0;
+  });
+  // Games per day
+  const allCardGames = allGamesCard || [];
+  const allChessGames = allGamesChess || [];
+  const allGuessGames = allGamesGuess || [];
+  const gamesByDay = {};
+  [...allCardGames, ...allChessGames, ...allGuessGames].forEach(g=>{
+    if (!g.created_at) return;
+    const day = g.created_at.slice(0,10);
+    gamesByDay[day] = (gamesByDay[day]||0) + 1;
+  });
+  setTimeout(()=>{
+    // Transactions chart
+    const txDays = Object.keys(txPerDay).sort();
+    new Chart(document.getElementById('txChart'), {
+      type: 'bar',
+      data: {
+        labels: txDays,
+        datasets: [
+          {label: 'Deposits', data: txDays.map(d=>txPerDay[d].deposit), backgroundColor:'#3bb344'},
+          {label: 'Withdrawals', data: txDays.map(d=>txPerDay[d].withdrawal), backgroundColor:'#d82c2c'}
+        ]
+      },
+      options: {
+        plugins: { title: {display:true, text:'Transactions Over Time'} },
+        responsive: true,
+        scales: { y: { beginAtZero:true } }
+      }
+    });
+    // Games chart
+    const gameDays = Object.keys(gamesByDay).sort();
+    new Chart(document.getElementById('gameChart'), {
+      type: 'line',
+      data: {
+        labels: gameDays,
+        datasets: [
+          {label: 'Games Created', data: gameDays.map(d=>gamesByDay[d]), borderColor:'#35599e', backgroundColor:'#e7eefe'}
+        ]
+      },
+      options: {
+        plugins: { title: {display:true, text:'Games Created Per Day'} },
+        responsive: true,
+        scales: { y: { beginAtZero:true } }
+      }
+    });
+  }, 100);
+}
+
+// ---- PLAYERS TAB ----
+async function loadPlayers() {
+  const el = document.getElementById('tab-players');
+  el.innerHTML = `<div>Loading players...</div>`;
+  const { data: users } = await supabase.from('users').select('*').order('created_at', {ascending:false});
+  const { data: txs } = await supabase.from('player_transactions').select('player_id, amount, type');
+  // All games for stats
+  const [{ data: cardGames }, { data: chessGames }, { data: guessGames }] = await Promise.all([
+    supabase.from('card_games').select('creator_username,opponent_username,winner,bet,created_at,code'),
+    supabase.from('chess_games').select('white_username,black_username,winner,bet,created_at,code'),
+    supabase.from('guess_number_games').select('creator_username,opponent_username,winner,bet,created_at,code')
+  ]);
+  // Build stats
+  const userStats = {};
+  (users||[]).forEach(u=>{
+    userStats[u.username] = {deposits:0, withdrawals:0, card:0, chess:0, guess:0};
+  });
+  (txs||[]).forEach(tx=>{
+    const u = (users||[]).find(u=>u.id===tx.player_id);
+    if (u) {
+      if (tx.type==='deposit') userStats[u.username].deposits += Number(tx.amount)||0;
+      else if (tx.type==='withdrawal') userStats[u.username].withdrawals += Number(tx.amount)||0;
+    }
+  });
+  (cardGames||[]).forEach(g=>{
+    [g.creator_username, g.opponent_username].forEach(u=>{
+      if(u && userStats[u]) userStats[u].card++;
+    });
+  });
+  (chessGames||[]).forEach(g=>{
+    [g.white_username, g.black_username].forEach(u=>{
+      if(u && userStats[u]) userStats[u].chess++;
+    });
+  });
+  (guessGames||[]).forEach(g=>{
+    [g.creator_username, g.opponent_username].forEach(u=>{
+      if(u && userStats[u]) userStats[u].guess++;
+    });
+  });
+  el.innerHTML = `
+    <div class="filters" style="margin-bottom:0.5rem;">
+      <label>Filter: <input type="text" id="player-filter" placeholder="Search by username or phone..." /></label>
+    </div>
+    <table class="main-table" id="players-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Phone</th>
+          <th>Balance</th>
+          <th>Deposits</th>
+          <th>Withdrawals</th>
+          <th>Card Games</th>
+          <th>Chess Games</th>
+          <th>Guess # Games</th>
+          <th>Created At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(users||[]).map(u=>`
+          <tr style="cursor:pointer" onclick="showUserStatsModal('${u.id}','${u.username}')">
+            <td>${u.username}</td>
+            <td>${u.phone}</td>
+            <td>${ETB(u.balance)}</td>
+            <td>${ETB(userStats[u.username]?.deposits||0)}</td>
+            <td>${ETB(userStats[u.username]?.withdrawals||0)}</td>
+            <td>${userStats[u.username]?.card||0}</td>
+            <td>${userStats[u.username]?.chess||0}</td>
+            <td>${userStats[u.username]?.guess||0}</td>
+            <td>${formatDate(u.created_at)}</td>
+            <td>
+              <button class="table-action-btn danger" onclick="banUser('${u.id}','${u.username}');event.stopPropagation();">Ban/Suspend</button>
+              <button class="table-action-btn" onclick="showBalanceModal('${u.id}','${u.username}',${u.balance});event.stopPropagation();">Adjust Balance</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <div id="player-tools-info" style="margin-top:1rem;color:#5a5a5a;">*Click a user for stats, game history and wins/losses. Use tools to ban/suspend or adjust balance (admin only).</div>
+  `;
+  document.getElementById('player-filter').addEventListener('input', function() {
+    const v = this.value.toLowerCase();
+    document.querySelectorAll('#players-table tbody tr').forEach(tr => {
+      let show = false;
+      [...tr.children].forEach(td=>{
+        if (td.innerText.toLowerCase().includes(v)) show = true;
+      });
+      tr.style.display = show ? '' : 'none';
+    });
+  });
+
+  // Save data for modal
+  window.__PlayersData = {users, cardGames, chessGames, guessGames};
+}
+
+// Player stats modal (feature 1)
+window.showUserStatsModal = async function(userId, username) {
+  const {users, cardGames, chessGames, guessGames} = window.__PlayersData || {};
+  const user = (users||[]).find(u=>u.id===userId);
+  // Gather all games where this user played
+  const card = (cardGames||[]).filter(g=>g.creator_username===username||g.opponent_username===username);
+  const chess = (chessGames||[]).filter(g=>g.white_username===username||g.black_username===username);
+  const guess = (guessGames||[]).filter(g=>g.creator_username===username||g.opponent_username===username);
+
+  // Win/loss for each game type
+  function winLoss(games, username, winnerKey='winner') {
+    let wins=0, losses=0;
+    games.forEach(g=>{
+      if (g[winnerKey]===username) wins++;
+      else if (g[winnerKey] && g[winnerKey]!=='house' && g[winnerKey]!==username) losses++;
+    });
+    return {wins, losses};
+  }
+  const wlCard = winLoss(card, username);
+  const wlChess = winLoss(chess, username);
+  const wlGuess = winLoss(guess, username);
+
+  const allGames = [
+    ...(card||[]).map(g=>({...g, type:'Card'})),
+    ...(chess||[]).map(g=>({...g, type:'Chess'})),
+    ...(guess||[]).map(g=>({...g, type:'Guess'}))
+  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const lastGame = allGames[0]?.created_at;
+
+  let html = `
+    <div class="player-stats-summary">
+      <div><b>Joined:</b> ${formatDate(user?.created_at)}</div>
+      <div><b>Last Game:</b> ${formatDate(lastGame)||'None'}</div>
+      <div><b>Card Games:</b> ${card.length} (Wins: ${wlCard.wins}, Losses: ${wlCard.losses})</div>
+      <div><b>Chess Games:</b> ${chess.length} (Wins: ${wlChess.wins}, Losses: ${wlChess.losses})</div>
+      <div><b>Guess Number:</b> ${guess.length} (Wins: ${wlGuess.wins}, Losses: ${wlGuess.losses})</div>
+      <div><b>Total Games:</b> ${allGames.length}</div>
+    </div>
+    <div class="section-title">Game History</div>
+    <table class="main-table">
+      <thead>
+        <tr><th>Game Type</th><th>Code</th><th>Bet</th><th>Status</th><th>Winner</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        ${(allGames||[]).map(g=>`
+          <tr>
+            <td>${g.type}</td>
+            <td>${g.code}</td>
+            <td>${ETB(g.bet)}</td>
+            <td>${g.status}</td>
+            <td>${g.winner||'-'}</td>
+            <td>${formatDate(g.created_at)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  showModal(`Player: ${username} - Stats & Games`, html);
+};
+
+// Ban/Suspend and Balance features (unchanged)
+window.banUser = function(userId, username) {
+  showModal('Ban/Suspend User',
+    `<div>Are you sure you want to <b>ban/suspend</b> user <b>${username}</b>?<br>
+    <button class="table-action-btn danger" onclick="confirmBanUser('${userId}')">Confirm Ban/Suspend</button>
+    <button class="table-action-btn" onclick="closeModal()">Cancel</button></div>`
+  );
+}
+window.confirmBanUser = async function(userId) {
+  closeModal();
+  alert('Ban/Suspend action would be performed here. (You may want to add a banned or suspended field in the users table for this action to work.)');
+}
+window.showBalanceModal = function(userId, username, currentBalance) {
+  showModal('Adjust Balance',
+    `<div>
+      <b>User:</b> ${username}<br>
+      <b>Current Balance:</b> ${ETB(currentBalance)}<br><br>
+      <input type="number" id="adj-amount" placeholder="Enter amount (ETB)" style="width:120px;">
+      <select id="adj-type"><option value="add">Add</option><option value="subtract">Subtract</option></select>
+      <button class="table-action-btn" onclick="adjustBalance('${userId}')">Apply</button>
+    </div>`
+  );
+}
+window.adjustBalance = async function(userId) {
+  const amt = parseFloat(document.getElementById('adj-amount').value);
+  const type = document.getElementById('adj-type').value;
+  if (isNaN(amt) || amt <= 0) {
+    alert('Enter a valid amount!');
+    return;
+  }
+  const { data: user } = await supabase.from('users').select('balance').eq('id', userId).single();
+  let newBalance = Number(user.balance);
+  if (type==='add') newBalance += amt;
+  else newBalance -= amt;
+  await supabase.from('users').update({ balance: newBalance }).eq('id', userId);
+  closeModal();
+  alert('Balance updated.');
+  loadPlayers();
+}
+
+// ---- GAMES TAB ---- (unchanged)
+async function loadGames(gameType) {
+  const el = document.getElementById('tab-' + gameType);
+  el.innerHTML = `<div>Loading ${gameType.replace('_',' ').toUpperCase()}...</div>`;
+  el.innerHTML = `
+    <div class="filters">
+      <div><label>Date From: <input type="date" id="games-date-from"></label></div>
+      <div><label>Date To: <input type="date" id="games-date-to"></label></div>
+      <div><label>Player Username: <input type="text" id="games-username"></label></div>
+      <button onclick="filterGames('${gameType}')">Filter</button>
+      <button onclick="loadGames('${gameType}')">Clear</button>
+    </div>
+    <table class="main-table" id="games-table">
+      <thead id="games-table-head"></thead>
+      <tbody id="games-table-body"></tbody>
+    </table>
+    <div id="games-extra-info"></div>
+  `;
+  window.filterGames = async function(gameType) {
+    const from = document.getElementById('games-date-from').value;
+    const to = document.getElementById('games-date-to').value;
+    const username = document.getElementById('games-username').value.toLowerCase();
+    let query = supabase.from(gameType).select('*');
+    if (from) query = query.gte('created_at', from+'T00:00:00+00:00');
+    if (to) query = query.lte('created_at', to+'T23:59:59+00:00');
+    let { data: games } = await query.order('created_at',{ascending:false});
+    if (username) {
+      games = games.filter(g => Object.values(g).some(v =>
+        typeof v === 'string' && v.toLowerCase().includes(username)
+      ));
+    }
+    renderGamesTable(gameType, games);
+  };
+  let { data: games } = await supabase.from(gameType).select('*').order('created_at', {ascending:false}).limit(200);
+  renderGamesTable(gameType, games);
+}
+function renderGamesTable(gameType, games) {
+  const head = document.getElementById('games-table-head');
+  const body = document.getElementById('games-table-body');
+  let headers = [];
+  if (gameType==='card_games') {
+    headers = ['Code', 'Creator', 'Opponent', 'Bet', 'Status', 'Winner', 'Created At', 'Details'];
+  } else if (gameType==='chess_games') {
+    headers = ['Code', 'White', 'Black', 'Bet', 'Status', 'Winner', 'Created At', 'Details'];
+  } else if (gameType==='guess_number_games') {
+    headers = ['Code', 'Creator', 'Opponent', 'Bet', 'Status', 'Winner', 'Created At', 'Details'];
+  }
+  head.innerHTML = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  body.innerHTML = (games||[]).map(g=>{
+    let c1 = gameType==='chess_games' ? g.white_username : g.creator_username;
+    let c2 = gameType==='chess_games' ? g.black_username : g.opponent_username;
+    return `<tr>
+      <td>${g.code}</td>
+      <td>${c1||'-'}</td>
+      <td>${c2||'-'}</td>
+      <td>${ETB(g.bet)}</td>
+      <td>${g.status}</td>
+      <td>${g.winner||'-'}</td>
+      <td>${formatDate(g.created_at)}</td>
+      <td>
+        <button class="table-action-btn" onclick="showGameDetails('${gameType}','${g.code}')">Details</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+window.showGameDetails = async function(gameType, code) {
+  const { data: games } = await supabase.from(gameType).select('*').eq('code', code);
+  const g = (games||[])[0];
+  if (!g) return alert('Game not found');
+  let html = '';
+  Object.entries(g).forEach(([k,v])=>{
+    if (typeof v === 'object' && v !== null) {
+      html += `<div><b>${k}:</b> <pre>${JSON.stringify(v, null, 2)}</pre></div>`;
+    } else {
+      html += `<div><b>${k}:</b> ${v===null?'':v}</div>`;
+    }
+  });
+  showModal(`${gameType.replace('_',' ').toUpperCase()} [${code}]`, html);
+}
+
+// ---- DEPOSITS & WITHDRAWS TAB ---- (unchanged)
+async function loadDepositsWithdraws() {
+  const el = document.getElementById('tab-deposits_withdraws');
+  el.innerHTML = '<div>Loading transactions...</div>';
+  const { data: txs } = await supabase
+    .from('player_transactions')
+    .select('id, player_id, amount, type, created_at, status')
+    .order('created_at',{ascending:false})
+    .limit(200);
+  const { data: users } = await supabase.from('users').select('id,username,phone');
+  el.innerHTML = `
+    <div class="filters">
+      <label>Status: 
+        <select id="tx-status-filter">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </label>
+      <label>Type: 
+        <select id="tx-type-filter">
+          <option value="">All</option>
+          <option value="deposit">Deposit</option>
+          <option value="withdrawal">Withdrawal</option>
+        </select>
+      </label>
+      <input type="text" id="tx-user-filter" placeholder="Username or phone">
+      <button onclick="filterTxs()">Filter</button>
+      <button onclick="loadDepositsWithdraws()">Clear</button>
+    </div>
+    <div class="tab-alert">Accepting a deposit will add to user's balance. Accepting a withdrawal will subtract from user's balance (if sufficient). <b>All actions are immediate.</b></div>
+    <table class="main-table" id="tx-table">
+      <thead>
+        <tr><th>User</th><th>Phone</th><th>Type</th><th>Amount</th><th>Status</th><th>Requested At</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+${(txs||[]).map(tx=>{
+            const u = (users||[]).find(u=>u.id===tx.player_id)||{};
+          return `<tr>
+            <td>${u.username||tx.player_id}</td>
+            <td>${u.phone||''}</td>
+            <td>${tx.type}</td>
+            <td>${ETB(tx.amount)}</td>
+            <td><span class="status-badge ${tx.status}">${tx.status}</span></td>
+            <td>${formatDate(tx.created_at)}</td>
+            <td>
+              ${tx.status==='pending'?`
+              <button class="table-action-btn" onclick="acceptTransaction(${tx.id},'${tx.type}')">Accept</button>
+              <button class="table-action-btn danger" onclick="rejectTransaction(${tx.id})">Reject</button>
+              `:''}
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+  window.filterTxs = function(){
+    const status = document.getElementById('tx-status-filter').value;
+    const type = document.getElementById('tx-type-filter').value;
+    const user = document.getElementById('tx-user-filter').value.toLowerCase();
+    document.querySelectorAll('#tx-table tbody tr').forEach(tr=>{
+      let show = true;
+      if (status && !tr.children[4].innerText.toLowerCase().includes(status)) show = false;
+      if (type && tr.children[2].innerText.toLowerCase()!==type) show = false;
+      if (user && !tr.children[0].innerText.toLowerCase().includes(user) && !tr.children[1].innerText.toLowerCase().includes(user)) show = false;
+      tr.style.display = show ? '' : 'none';
+    });
+  };
+}
+window.acceptTransaction = async function(txId, type) {
+  const { data: tx } = await supabase.from('player_transactions').select('*').eq('id',txId).single();
+  if (!tx || tx.status!=='pending') return alert('Transaction not pending.');
+  const { data: user } = await supabase.from('users').select('id, balance').eq('id',tx.player_id).single();
+  let newBal = Number(user.balance);
+  let msg = '';
+  if (type==='deposit') {
+    newBal += Number(tx.amount);
+    msg = 'Deposit accepted and balance updated.';
+  } else if (type==='withdrawal') {
+    if (newBal<Number(tx.amount)) {
+      alert('Insufficient balance for withdrawal!');
+      return;
+    }
+    newBal -= Number(tx.amount);
+    msg = 'Withdrawal accepted and balance updated.';
+  }
+  await Promise.all([
+    supabase.from('player_transactions').update({status:'accepted'}).eq('id',txId),
+    supabase.from('users').update({balance:newBal}).eq('id',tx.player_id)
+  ]);
+  alert(msg);
+  loadDepositsWithdraws();
+  loadDashboard();
+};
+window.rejectTransaction = async function(txId) {
+  await supabase.from('player_transactions').update({status:'rejected'}).eq('id',txId);
+  alert('Transaction rejected.');
+  loadDepositsWithdraws();
+  loadDashboard();
+}
+
+// ---- GAME CODE SEARCH ---- (unchanged)
+async function loadGameSearch() {
+  const el = document.getElementById('tab-search');
+  el.innerHTML = `
+    <div class="search-bar">
+      <input type="text" id="game-search-code" placeholder="Enter any game code..." />
+      <button onclick="searchGameCode()">Search</button>
+    </div>
+    <div id="game-search-result"></div>
+  `;
+}
+window.searchGameCode = async function() {
+  const code = document.getElementById('game-search-code').value.trim();
+  if (!code) return alert('Enter a code');
+  const tables = [
+    {name:'card_games', fields:['code','creator_username','opponent_username','bet','status','winner','created_at','updated_at','creator_hand','opponent_hand','deck','discard_pile','timeout_checked','must_play_suit']},
+    {name:'chess_games', fields:['code','white_username','black_username','bet','fen','status','winner','created_at','updated_at','moves','draw_offer','white_time','black_time','timeout_checked']},
+    {name:'guess_number_games', fields:['code','creator_username','opponent_username','bet','status','winner','created_at','updated_at','guesses','attempts_left','current_round','timeout_checked']}
+  ];
+  let found = null, gameType = '';
+  for (let t of tables) {
+    const { data } = await supabase.from(t.name).select('*').eq('code', code);
+    if (data && data.length) {
+      found = {row: data[0], fields: t.fields};
+      gameType = t.name;
+      break;
+    }
+  }
+  const resultEl = document.getElementById('game-search-result');
+  if (!found) {
+    resultEl.innerHTML = `<div>No game found with code <b>${code}</b></div>`;
+    return;
+  }
+  let html = `<div class="section-title">${gameType.replace('_',' ').toUpperCase()} [${code}]</div>`;
+  found.fields.forEach(f=>{
+    let val = found.row[f];
+    if (typeof val === 'object' && val!==null)
+      html += `<div><b>${f}:</b> <pre>${JSON.stringify(val,null,2)}</pre></div>`;
+    else html += `<div><b>${f}:</b> ${val===null?'':val}</div>`;
+  });
+  resultEl.innerHTML = html;
+}
+
+// ---- INIT ----
+showTab('dashboard');
+</script>
+</body>
+</html>
