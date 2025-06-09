@@ -129,7 +129,6 @@ async function loadDashboard() {
   const [
     { data: depositsToday }, { data: withdrawalsToday },
     { data: totalBalances }, { data: houseBalance },
-    { data: houseBalanceStart }, { data: houseBalanceEnd },
     { data: cardGamesToday }, { data: chessGamesToday }, { data: guessGamesToday },
     { data: allTransactions }, { data: allGamesCard }, { data: allGamesChess }, { data: allGamesGuess }
   ] = await Promise.all([
@@ -137,24 +136,30 @@ async function loadDashboard() {
     supabase.from('player_transactions').select('amount').eq('type', 'withdrawal').eq('status', 'accepted').gte('created_at', startOfDay).lte('created_at', endOfDay),
     supabase.from('users').select('balance'),
     supabase.from('house_balance').select('balance').order('id', {ascending: false}).limit(1),
-    supabase.from('house_balance').select('balance,created_at').order('created_at', {ascending:true}).gte('created_at', startOfDay).limit(1),
-    supabase.from('house_balance').select('balance,created_at').order('created_at', {ascending:false}).lte('created_at', endOfDay).limit(1),
-    supabase.from('card_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay),
-    supabase.from('chess_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay),
-    supabase.from('guess_number_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay),
+    supabase.from('card_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
+    supabase.from('chess_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
+    supabase.from('guess_number_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
     supabase.from('player_transactions').select('amount, type, created_at, status'),
     supabase.from('card_games').select('id, created_at'),
     supabase.from('chess_games').select('id, created_at'),
     supabase.from('guess_number_games').select('id, created_at')
   ]);
 
+  // Calculate House Balance Change (new logic, only finished games)
+  let houseBalChange = 0;
+  [
+    ...(cardGamesToday||[]),
+    ...(chessGamesToday||[]),
+    ...(guessGamesToday||[])
+  ].forEach(game => {
+    const bet = Number(game.bet) || 0;
+    houseBalChange += bet * 2 * 0.20;
+  });
+
   const totalDepositsToday = (depositsToday||[]).reduce((sum, tx)=>sum + (Number(tx.amount)||0), 0);
   const totalWithdrawalsToday = (withdrawalsToday||[]).reduce((sum, tx)=>sum + (Number(tx.amount)||0), 0);
   const sumTotalBalances = (totalBalances||[]).reduce((sum, u)=>sum + (Number(u.balance)||0), 0);
   const houseBal = (houseBalance||[])[0]?.balance ?? 0;
-  const houseBalStart = (houseBalanceStart||[])[0]?.balance ?? houseBal;
-  const houseBalEnd = (houseBalanceEnd||[])[0]?.balance ?? houseBal;
-  const houseBalChange = houseBalEnd - houseBalStart;
 
   // Today's games (feature 2)
   const todayGames = [
@@ -220,7 +225,7 @@ async function loadDashboard() {
     </div>
   `;
 
-  // Charts
+  // Charts (unchanged)
   const allTxs = allTransactions || [];
   const txPerDay = {};
   allTxs.forEach(tx=>{
@@ -276,7 +281,6 @@ async function loadDashboard() {
     });
   }, 100);
 }
-
 // ---- PLAYERS TAB ----
 async function loadPlayers() {
   const el = document.getElementById('tab-players');
