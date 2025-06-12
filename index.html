@@ -7,59 +7,532 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
-    body { font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#f4f6f8;color:#232323;}
-    .navbar {background:#0c2238;color:#fff;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;}
-    .navbar h1 {margin:0;font-size:2rem;letter-spacing:1px;}
-    .nav-tabs {display:flex;gap:1rem;flex-wrap:wrap;}
-    .nav-tabs button {background:none;border:none;color:#fff;font-size:1rem;padding:0.5rem 1.2rem;cursor:pointer;border-bottom:2px solid transparent;transition:border .2s;}
-    .nav-tabs .active {border-bottom:2.5px solid #ffc300;color:#ffc300;}
-    .dashboard-content {max-width:1400px;margin:2rem auto;background:#fff;border-radius:1rem;box-shadow:0 2px 30px rgba(30,60,90,0.07);padding:2rem 2.5rem;}
-    .summary-cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:1.7rem;}
-    .summary-card {background:#f8fafc;border-radius:0.8rem;padding:1.1rem 1.3rem;box-shadow:0 2px 8px rgba(0,0,0,0.05);text-align:left;}
-    .summary-card h3 {margin:0 0 0.2rem 0;font-size:1.1rem;color:#5571b1;}
-    .summary-card .value {font-size:1.4rem;color:#0c2238;font-weight:600;}
-    .summary-card .subtext {font-size:0.9rem;color:#666;margin-top:0.3rem;}
-    .filters {display:flex;gap:1rem;align-items:flex-end;margin-bottom:1rem;flex-wrap:wrap;}
-    .filters label {font-size:0.97rem;margin-bottom:0.2rem;color:#5a5a5a;}
-    .filters input,.filters select {padding:0.4rem 0.8rem;border:1px solid #b0becb;border-radius:0.4rem;font-size:1rem;background:#f8fafc;}
-    .filters button {background:#0c2238;color:#fff;padding:0.45rem 1.3rem;border:none;border-radius:0.4rem;font-size:1rem;cursor:pointer;margin-top:0.7rem;}
-    .main-table {width:100%;border-collapse:collapse;background:#fff;margin-bottom:1.5rem;}
-    .main-table th,.main-table td {border-bottom:1px solid #e0e3e7;padding:0.8rem 0.7rem;text-align:left;font-size:0.95rem;}
-    .main-table th {background:#f3f4f9;color:#35599e;font-weight:500;}
-    .main-table tr:hover {background:#f7f9fc;}
-    .table-action-btn {background:#ffc300;color:#0c2238;border:none;border-radius:0.4rem;padding:0.35rem 1rem;font-size:0.9rem;cursor:pointer;margin-right:0.5rem;transition:background .2s;}
-    .table-action-btn.danger {background:#d82c2c;color:#fff;}
-    .table-action-btn.success {background:#28a745;color:#fff;}
-    .details-modal-bg {display:none;position:fixed;z-index:98;left:0;top:0;width:100vw;height:100vh;background:rgba(32,44,60,0.14);justify-content:center;align-items:flex-start;overflow-y:auto;}
-    .details-modal-bg.active {display:flex;}
-    .details-modal {background:#fff;border-radius:1rem;box-shadow:0 2px 38px rgba(0,0,0,0.18);padding:2rem 2.3rem;margin-top:3rem;min-width:350px;max-width:90vw;max-height:90vh;overflow-y:auto;position:relative;z-index:100;}
-    .details-modal h2 {font-size:1.3rem;margin:0 0 1.2rem 0;color:#35599e;}
-    .details-modal pre {background:#f5f5f5;border-radius:0.4rem;padding:0.7rem;white-space:pre-wrap;font-size:0.97rem;overflow-x:auto;margin-bottom:0.8rem;}
-    .modal-close-btn {position:absolute;top:1.1rem;right:1.3rem;background:#d82c2c;color:#fff;border:none;border-radius:50%;width:2.2rem;height:2.2rem;font-size:1.2rem;text-align:center;cursor:pointer;z-index:200;}
-    .section-title {font-size:1.18rem;color:#35599e;margin:1.6rem 0 0.4rem 0;font-weight:500;}
-    .chart-container {width:100%;max-width:600px;margin:1.5rem 0;}
-    .search-bar {display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;}
-    .search-bar input {flex:1;font-size:1rem;}
-    .search-bar button {background:#35599e;color:#fff;padding:0.45rem 1.3rem;border:none;border-radius:0.4rem;font-size:1rem;cursor:pointer;}
-    .label-badge {display:inline-block;background:#e7eefe;color:#3f679e;border-radius:0.3rem;font-size:0.90rem;padding:0.15rem 0.6rem;margin-right:0.35rem;margin-bottom:0.2rem;}
-    .tab-alert {background:#fff9c4;color:#7e7105;padding:0.6rem 1rem;border-radius:0.4rem;margin-bottom:1.1rem;}
-    .status-badge {display:inline-block;padding:0.1rem 0.7rem;border-radius:0.3rem;font-size:0.92rem;}
-    .status-badge.pending {background:#ffe0b2;color:#a36b08;}
-    .status-badge.accepted {background:#c8e6c9;color:#237e1e;}
-    .status-badge.rejected {background:#ffcdd2;color:#b71c1c;}
-    .player-stats-summary {margin:1rem 0 1.5rem 0;display:flex;gap:1.1rem;flex-wrap:wrap;}
-    .player-stats-summary div {background:#f3f6fa;padding:0.75rem 1.1rem;border-radius:0.5rem;}
-    .stats-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;margin:1rem 0;}
-    .stat-card {background:#f8fafc;border-radius:0.5rem;padding:1rem;border-left:4px solid #3b82f6;}
-    .alert-warning {background:#fef3cd;color:#856404;padding:0.75rem;border-radius:0.4rem;margin:0.5rem 0;border-left:4px solid #ffc107;}
-    .alert-info {background:#d1ecf1;color:#0c5460;padding:0.75rem;border-radius:0.4rem;margin:0.5rem 0;border-left:4px solid #17a2b8;}
-    .two-column {display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:1rem 0;}
-    @media (max-width:800px){
-      .dashboard-content{padding:1rem 0.6rem;}
-      .summary-cards{grid-template-columns:1fr;gap:0.7rem;}
-      .filters{flex-direction:column;gap:0.5rem;}
-      .two-column{grid-template-columns:1fr;}
-      .nav-tabs{justify-content:center;}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #2d3748;
+      line-height: 1.6;
+    }
+
+    .navbar {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .navbar h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-tabs button {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #4a5568;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-tabs button:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .nav-tabs .active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .dashboard-content {
+      max-width: 1400px;
+      margin: 2rem auto;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .summary-card {
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .summary-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .summary-card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #718096;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .summary-card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 0.5rem;
+    }
+
+    .summary-card .subtext {
+      font-size: 0.875rem;
+      color: #718096;
+    }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      padding: 1rem;
+      background: rgba(247, 250, 252, 0.8);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .filters label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #4a5568;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .filters input, .filters select {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: white;
+      transition: all 0.2s ease;
+    }
+
+    .filters input:focus, .filters select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .filters button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filters button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .main-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+    }
+
+    .main-table th, .main-table td {
+      padding: 1rem 0.75rem;
+      text-align: left;
+      font-size: 0.875rem;
+      border-bottom: 1px solid #f7fafc;
+    }
+
+    .main-table th {
+      background: linear-gradient(135deg, #f7fafc, #edf2f7);
+      color: #4a5568;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.75rem;
+    }
+
+    .main-table tr:hover {
+      background: rgba(102, 126, 234, 0.02);
+    }
+
+    .table-action-btn {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .table-action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(72, 187, 120, 0.3);
+    }
+
+    .table-action-btn.danger {
+      background: linear-gradient(135deg, #f56565, #e53e3e);
+    }
+
+    .table-action-btn.danger:hover {
+      box-shadow: 0 4px 8px rgba(245, 101, 101, 0.3);
+    }
+
+    .table-action-btn.warning {
+      background: linear-gradient(135deg, #ed8936, #dd6b20);
+    }
+
+    .table-action-btn.warning:hover {
+      box-shadow: 0 4px 8px rgba(237, 137, 54, 0.3);
+    }
+
+    .details-modal-bg {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      justify-content: center;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    .details-modal-bg.active {
+      display: flex;
+    }
+
+    .details-modal {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      padding: 2rem;
+      margin: 2rem;
+      min-width: 400px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .details-modal h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #2d3748;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #f56565;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 2rem;
+      height: 2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: #e53e3e;
+      transform: scale(1.1);
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin: 2rem 0 1rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 1.5rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 2px;
+    }
+
+    .chart-container {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin: 1rem 0;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge.pending {
+      background: linear-gradient(135deg, #fef5e7, #fed7aa);
+      color: #c05621;
+    }
+
+    .status-badge.accepted {
+      background: linear-gradient(135deg, #f0fff4, #c6f6d5);
+      color: #22543d;
+    }
+
+    .status-badge.rejected {
+      background: linear-gradient(135deg, #fed7d7, #feb2b2);
+      color: #742a2a;
+    }
+
+    .status-badge.approved {
+      background: linear-gradient(135deg, #f0fff4, #c6f6d5);
+      color: #22543d;
+    }
+
+    .alert-warning {
+      background: linear-gradient(135deg, #fef5e7, #fed7aa);
+      color: #c05621;
+      padding: 1rem;
+      border-radius: 12px;
+      margin: 1rem 0;
+      border-left: 4px solid #ed8936;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .alert-info {
+      background: linear-gradient(135deg, #ebf8ff, #bee3f8);
+      color: #2c5282;
+      padding: 1rem;
+      border-radius: 12px;
+      margin: 1rem 0;
+      border-left: 4px solid #3182ce;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border-left: 4px solid #667eea;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card h4 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #718096;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin: 1rem 0;
+    }
+
+    .notification-badge {
+      background: #f56565;
+      color: white;
+      border-radius: 50%;
+      padding: 0.125rem 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid rgba(102, 126, 234, 0.3);
+      border-radius: 50%;
+      border-top-color: #667eea;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-content {
+        margin: 1rem;
+        padding: 1rem;
+      }
+      
+      .summary-cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      
+      .filters {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+      
+      .nav-tabs {
+        justify-content: center;
+        gap: 0.25rem;
+      }
+      
+      .nav-tabs button {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+      }
+    }
+
+    .player-stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .player-stats-summary div {
+      background: rgba(247, 250, 252, 0.8);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      align-items: stretch;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .search-bar button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .search-bar button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
   </style>
 </head>
@@ -72,7 +545,7 @@
       <button data-tab="card_games">Card Games</button>
       <button data-tab="chess_games">Chess Games</button>
       <button data-tab="guess_number_games">Guess Number</button>
-      <button data-tab="deposits_withdraws">Transactions</button>
+      <button data-tab="deposits_withdraws">Transactions<span id="pending-badge" class="notification-badge" style="display:none;">0</span></button>
       <button data-tab="analytics">Analytics</button>
       <button data-tab="search">Search</button>
     </div>
@@ -136,353 +609,438 @@ function showModal(title, html) {
   document.getElementById('details-modal-bg').classList.add('active');
 }
 
+// Update pending transactions badge
+async function updatePendingBadge() {
+  try {
+    const { data: pendingTxs } = await supabase
+      .from('player_transactions')
+      .select('id')
+      .eq('status', 'pending');
+    
+    const badge = document.getElementById('pending-badge');
+    const count = (pendingTxs || []).length;
+    
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Error updating pending badge:', error);
+  }
+}
+
 // ---- DASHBOARD ----
 async function loadDashboard() {
   const el = document.getElementById('tab-dashboard');
-  el.innerHTML = `<div>Loading dashboard...</div>`;
+  el.innerHTML = `<div style="text-align:center;padding:2rem;"><div class="loading-spinner"></div><br>Loading dashboard...</div>`;
   
   const today = new Date();
   const dayStr = today.toISOString().slice(0,10);
   const startOfDay = dayStr + 'T00:00:00+00:00';
   const endOfDay = dayStr + 'T23:59:59+00:00';
 
-  // Comprehensive queries
-  const [
-    { data: depositsToday }, { data: withdrawalsToday }, { data: allDeposits }, { data: allWithdrawals },
-    { data: totalBalances }, { data: houseBalance }, { data: users },
-    { data: cardGamesToday }, { data: chessGamesToday }, { data: guessGamesToday },
-    { data: allTransactions }, { data: pendingTxs }
-  ] = await Promise.all([
-    supabase.from('player_transactions').select('amount').eq('transaction_type', 'deposit').eq('status', 'accepted').gte('created_at', startOfDay).lte('created_at', endOfDay),
-    supabase.from('player_transactions').select('amount').eq('transaction_type', 'withdrawal').eq('status', 'accepted').gte('created_at', startOfDay).lte('created_at', endOfDay),
-    supabase.from('player_transactions').select('amount').eq('transaction_type', 'deposit').eq('status', 'accepted'),
-    supabase.from('player_transactions').select('amount').eq('transaction_type', 'withdrawal').eq('status', 'accepted'),
-    supabase.from('users').select('balance'),
-    supabase.from('house_balance').select('balance').order('id', {ascending: false}).limit(1),
-    supabase.from('users').select('id'),
-    supabase.from('card_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
-    supabase.from('chess_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
-    supabase.from('guess_number_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
-    supabase.from('player_transactions').select('amount, transaction_type, created_at, status'),
-    supabase.from('player_transactions').select('*').eq('status', 'pending')
-  ]);
+  try {
+    // Get all transactions with both 'accepted' and 'approved' status
+    const [
+      { data: allTransactions }, { data: users }, { data: houseBalance },
+      { data: cardGamesToday }, { data: chessGamesToday }, { data: guessGamesToday },
+      { data: pendingTxs }
+    ] = await Promise.all([
+      supabase.from('player_transactions').select('*').order('created_at', { ascending: false }),
+      supabase.from('users').select('*'),
+      supabase.from('house_balance').select('balance').order('id', { ascending: false }).limit(1),
+      supabase.from('card_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
+      supabase.from('chess_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
+      supabase.from('guess_number_games').select('*').gte('created_at', startOfDay).lte('created_at', endOfDay).eq('status', 'finished'),
+      supabase.from('player_transactions').select('*').eq('status', 'pending')
+    ]);
 
-  // Calculate all metrics
-  const totalDepositsToday = (depositsToday||[]).reduce((sum, tx)=>sum + Math.abs(Number(tx.amount)||0), 0);
-  const totalWithdrawalsToday = (withdrawalsToday||[]).reduce((sum, tx)=>sum + Math.abs(Number(tx.amount)||0), 0);
-  const totalDepositsAll = (allDeposits||[]).reduce((sum, tx)=>sum + Math.abs(Number(tx.amount)||0), 0);
-  const totalWithdrawalsAll = (allWithdrawals||[]).reduce((sum, tx)=>sum + Math.abs(Number(tx.amount)||0), 0);
-  
-  // System balance (sum of all user balances)
-  const systemBalance = (totalBalances||[]).reduce((sum, u)=>sum + (Number(u.balance)||0), 0);
-  const houseBal = (houseBalance||[])[0]?.balance ?? 0;
-  const totalUsers = (users||[]).length;
+    // Filter transactions that are accepted OR approved
+    const acceptedTransactions = (allTransactions || []).filter(
+      tx => tx.status === 'accepted' || tx.status === 'approved'
+    );
+    
+    const todayTransactions = acceptedTransactions.filter(
+      tx => tx.created_at >= startOfDay && tx.created_at <= endOfDay
+    );
 
-  // House revenue calculation
-  let houseRevenue = 0;
-  [
-    ...(cardGamesToday||[]),
-    ...(chessGamesToday||[]),
-    ...(guessGamesToday||[])
-  ].forEach(game => {
-    const bet = Number(game.bet) || 0;
-    houseRevenue += bet * 2 * 0.20; // 20% house edge
-  });
+    // Calculate deposits and withdrawals
+    const depositsToday = todayTransactions
+      .filter(tx => tx.transaction_type === 'deposit')
+      .reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
 
-  // Today's games
-  const todayGames = [
-    ...((cardGamesToday||[]).map(g=>({type:'Card', ...g}))),
-    ...((chessGamesToday||[]).map(g=>({type:'Chess', ...g}))),
-    ...((guessGamesToday||[]).map(g=>({type:'Guess', ...g})))
-  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    const withdrawalsToday = todayTransactions
+      .filter(tx => tx.transaction_type === 'withdrawal')
+      .reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
 
-  // Pending transactions count
-  const pendingDeposits = (pendingTxs||[]).filter(tx => tx.transaction_type === 'deposit').length;
-  const pendingWithdrawals = (pendingTxs||[]).filter(tx => tx.transaction_type === 'withdrawal').length;
+    const totalDepositsAll = acceptedTransactions
+      .filter(tx => tx.transaction_type === 'deposit')
+      .reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
 
-  el.innerHTML = `
-    <div class="summary-cards">
-      <div class="summary-card">
-        <h3>System Balance</h3>
-        <div class="value">${ETB(systemBalance)}</div>
-        <div class="subtext">${totalUsers} total users</div>
+    const totalWithdrawalsAll = acceptedTransactions
+      .filter(tx => tx.transaction_type === 'withdrawal')
+      .reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
+
+    // Calculate chart data
+    const transactionsByDay = {};
+    acceptedTransactions.forEach(tx => {
+      const day = tx.created_at.slice(0, 10);
+      if (!transactionsByDay[day]) {
+        transactionsByDay[day] = { deposits: 0, withdrawals: 0 };
+      }
+      
+      if (tx.transaction_type === 'deposit') {
+        transactionsByDay[day].deposits += Math.abs(Number(tx.amount) || 0);
+      } else if (tx.transaction_type === 'withdrawal') {
+        transactionsByDay[day].withdrawals += Math.abs(Number(tx.amount) || 0);
+      }
+    });
+
+    // Get last 7 days for chart
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().slice(0, 10);
+    }).reverse();
+
+    const transactionChartData = last7Days.map(date => ({
+      date,
+      deposits: transactionsByDay[date]?.deposits || 0,
+      withdrawals: transactionsByDay[date]?.withdrawals || 0
+    }));
+
+    // Calculate other metrics
+    const systemBalance = (users || []).reduce((sum, u) => sum + (Number(u.balance) || 0), 0);
+    const houseBal = (houseBalance || [])[0]?.balance ?? 0;
+    const totalUsers = (users || []).length;
+
+    // Calculate house revenue
+    let houseRevenue = 0;
+    [...(cardGamesToday || []), ...(chessGamesToday || []), ...(guessGamesToday || [])].forEach(game => {
+      const bet = Number(game.bet) || 0;
+      houseRevenue += bet * 2 * 0.2; // 20% house edge
+    });
+
+    // Today's games
+    const todayGames = [
+      ...((cardGamesToday || []).map(g => ({ type: 'Card', ...g }))),
+      ...((chessGamesToday || []).map(g => ({ type: 'Chess', ...g }))),
+      ...((guessGamesToday || []).map(g => ({ type: 'Guess', ...g })))
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Pending transactions count
+    const pendingDeposits = (pendingTxs || []).filter(tx => tx.transaction_type === 'deposit').length;
+    const pendingWithdrawals = (pendingTxs || []).filter(tx => tx.transaction_type === 'withdrawal').length;
+
+    el.innerHTML = `
+      <div class="summary-cards">
+        <div class="summary-card">
+          <h3>System Balance</h3>
+          <div class="value">${ETB(systemBalance)}</div>
+          <div class="subtext">${totalUsers} total users</div>
+        </div>
+        <div class="summary-card">
+          <h3>House Balance</h3>
+          <div class="value">${ETB(houseBal)}</div>
+          <div class="subtext">Platform funds</div>
+        </div>
+        <div class="summary-card">
+          <h3>Today's Revenue</h3>
+          <div class="value">${ETB(houseRevenue)}</div>
+          <div class="subtext">${todayGames.length} games</div>
+        </div>
+        <div class="summary-card">
+          <h3>Deposits Today</h3>
+          <div class="value">${ETB(depositsToday)}</div>
+          <div class="subtext">All time: ${ETB(totalDepositsAll)}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Withdrawals Today</h3>
+          <div class="value">${ETB(withdrawalsToday)}</div>
+          <div class="subtext">All time: ${ETB(totalWithdrawalsAll)}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Pending Actions</h3>
+          <div class="value">${pendingDeposits + pendingWithdrawals}</div>
+          <div class="subtext">${pendingDeposits} deposits, ${pendingWithdrawals} withdrawals</div>
+        </div>
       </div>
-      <div class="summary-card">
-        <h3>House Balance</h3>
-        <div class="value">${ETB(houseBal)}</div>
-        <div class="subtext">Platform funds</div>
-      </div>
-      <div class="summary-card">
-        <h3>Today's Revenue</h3>
-        <div class="value">${ETB(houseRevenue)}</div>
-        <div class="subtext">${todayGames.length} games</div>
-      </div>
-      <div class="summary-card">
-        <h3>Deposits Today</h3>
-        <div class="value">${ETB(totalDepositsToday)}</div>
-        <div class="subtext">All time: ${ETB(totalDepositsAll)}</div>
-      </div>
-      <div class="summary-card">
-        <h3>Withdrawals Today</h3>
-        <div class="value">${ETB(totalWithdrawalsToday)}</div>
-        <div class="subtext">All time: ${ETB(totalWithdrawalsAll)}</div>
-      </div>
-      <div class="summary-card">
-        <h3>Pending Actions</h3>
-        <div class="value">${pendingDeposits + pendingWithdrawals}</div>
-        <div class="subtext">${pendingDeposits} deposits, ${pendingWithdrawals} withdrawals</div>
-      </div>
-    </div>
 
-    ${(pendingDeposits + pendingWithdrawals) > 0 ? `
-    <div class="alert-warning">
-      <strong>Action Required:</strong> ${pendingDeposits + pendingWithdrawals} pending transactions need your attention.
-      <button onclick="showTab('deposits_withdraws')" style="margin-left:1rem;padding:0.3rem 0.8rem;background:#856404;color:white;border:none;border-radius:0.3rem;cursor:pointer;">View Transactions</button>
-    </div>
-    ` : ''}
+      ${(pendingDeposits + pendingWithdrawals) > 0 ? `
+      <div class="alert-warning">
+        <span>⚠️</span>
+        <div>
+          <strong>Action Required:</strong> ${pendingDeposits + pendingWithdrawals} pending transactions need your attention.
+          <button onclick="showTab('deposits_withdraws')" style="margin-left:1rem;padding:0.5rem 1rem;background:#ed8936;color:white;border:none;border-radius:6px;cursor:pointer;">View Transactions</button>
+        </div>
+      </div>
+      ` : ''}
 
-    <div class="section-title">Today's Game Activity</div>
-    <table class="main-table">
-      <thead>
-        <tr><th>Game Type</th><th>Code</th><th>Players</th><th>Bet</th><th>Status</th><th>Winner</th><th>House Revenue</th><th>Created At</th></tr>
-      </thead>
-      <tbody>
-        ${(todayGames||[]).slice(0,10).map(g=>{
-          const bet = Number(g.bet) || 0;
-          const revenue = bet * 2 * 0.20;
-          return `
-          <tr>
-            <td>${g.type}</td>
-            <td>${g.code}</td>
-            <td>${g.creator_username||g.white_username||'-'}${g.opponent_username||g.black_username?` vs ${g.opponent_username||g.black_username}`:''}</td>
-            <td>${ETB(bet)}</td>
-            <td>${g.status}</td>
-            <td>${g.winner||'-'}</td>
-            <td>${ETB(revenue)}</td>
-            <td>${formatDate(g.created_at)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-    ${todayGames.length > 10 ? `<div style="text-align:center;margin:1rem 0;color:#666;">Showing 10 of ${todayGames.length} games today</div>` : ''}
-
-    <div class="two-column">
+      <div class="section-title">📊 Transaction Overview (Last 7 Days)</div>
       <div class="chart-container">
         <canvas id="txChart"></canvas>
       </div>
-      <div class="chart-container">
-        <canvas id="gameChart"></canvas>
+
+      <div class="section-title">🎮 Today's Game Activity</div>
+      <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+        <table class="main-table">
+          <thead>
+            <tr><th>Game Type</th><th>Code</th><th>Players</th><th>Bet</th><th>Status</th><th>Winner</th><th>House Revenue</th><th>Created At</th></tr>
+          </thead>
+          <tbody>
+            ${(todayGames || []).slice(0, 10).map(g => {
+              const bet = Number(g.bet) || 0;
+              const revenue = bet * 2 * 0.2;
+              return `
+              <tr>
+                <td><span style="font-weight:600;">${g.type}</span></td>
+                <td><code style="background:#f7fafc;padding:0.25rem 0.5rem;border-radius:4px;">${g.code}</code></td>
+                <td>${g.creator_username || g.white_username || '-'}${(g.opponent_username || g.black_username) ? ` vs ${g.opponent_username || g.black_username}` : ''}</td>
+                <td>${ETB(bet)}</td>
+                <td><span class="status-badge ${g.status}">${g.status}</span></td>
+                <td>${g.winner || '-'}</td>
+                <td>${ETB(revenue)}</td>
+                <td>${formatDate(g.created_at)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        ${todayGames.length > 10 ? `<div style="text-align:center;padding:1rem;color:#718096;border-top:1px solid #f7fafc;">Showing 10 of ${todayGames.length} games today</div>` : ''}
       </div>
-    </div>
-  `;
+    `;
 
-  // Generate charts
-  const allTxs = allTransactions || [];
-  const txPerDay = {};
-  allTxs.forEach(tx=>{
-    const day = tx.created_at.slice(0,10);
-    txPerDay[day] = txPerDay[day] || {deposit:0, withdrawal:0};
-    if (tx.status!=='accepted') return;
-    if (tx.transaction_type==='deposit') txPerDay[day].deposit += Math.abs(Number(tx.amount)||0);
-    if (tx.transaction_type==='withdrawal') txPerDay[day].withdrawal += Math.abs(Number(tx.amount)||0);
-  });
-
-  setTimeout(()=>{
-    // Transactions chart
-    const txDays = Object.keys(txPerDay).sort().slice(-7); // Last 7 days
-    new Chart(document.getElementById('txChart'), {
-      type: 'bar',
-      data: {
-        labels: txDays.map(d => new Date(d).toLocaleDateString()),
-        datasets: [
-          {label: 'Deposits', data: txDays.map(d=>txPerDay[d]?.deposit||0), backgroundColor:'#28a745'},
-          {label: 'Withdrawals', data: txDays.map(d=>txPerDay[d]?.withdrawal||0), backgroundColor:'#dc3545'}
-        ]
-      },
-      options: {
-        plugins: { title: {display:true, text:'Daily Transactions (Last 7 Days)'} },
-        responsive: true,
-        scales: { y: { beginAtZero:true } }
-      }
-    });
-
-    // Revenue chart (last 7 days)
-    const revenueDays = txDays;
-    const revenueData = revenueDays.map(day => {
-      // Calculate house revenue for this day
-      let dayRevenue = 0;
-      [cardGamesToday, chessGamesToday, guessGamesToday].forEach(games => {
-        (games||[]).forEach(game => {
-          if (game.created_at.slice(0,10) === day && game.status === 'finished') {
-            dayRevenue += Number(game.bet || 0) * 2 * 0.20;
-          }
-        });
+    // Generate chart
+    setTimeout(() => {
+      new Chart(document.getElementById('txChart'), {
+        type: 'bar',
+        data: {
+          labels: transactionChartData.map(d => new Date(d.date).toLocaleDateString()),
+          datasets: [
+            {
+              label: 'Deposits',
+              data: transactionChartData.map(d => d.deposits),
+              backgroundColor: 'rgba(72, 187, 120, 0.8)',
+              borderColor: 'rgba(72, 187, 120, 1)',
+              borderWidth: 1,
+            },
+            {
+              label: 'Withdrawals',
+              data: transactionChartData.map(d => d.withdrawals),
+              backgroundColor: 'rgba(245, 101, 101, 0.8)',
+              borderColor: 'rgba(245, 101, 101, 1)',
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            title: {
+              display: true,
+              text: 'Daily Transactions (Last 7 Days)',
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${ETB(context.parsed.y)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return ETB(value);
+                }
+              }
+            },
+          },
+        },
       });
-      return dayRevenue;
-    });
+    }, 100);
 
-    new Chart(document.getElementById('gameChart'), {
-      type: 'line',
-      data: {
-        labels: revenueDays.map(d => new Date(d).toLocaleDateString()),
-        datasets: [
-          {label: 'House Revenue', data: revenueData, borderColor:'#007bff', backgroundColor:'rgba(0,123,255,0.1)', fill: true}
-        ]
-      },
-      options: {
-        plugins: { title: {display:true, text:'House Revenue Trend'} },
-        responsive: true,
-        scales: { y: { beginAtZero:true } }
-      }
-    });
-  }, 100);
+    // Update pending badge
+    updatePendingBadge();
+
+  } catch (error) {
+    console.error('Error loading dashboard:', error);
+    el.innerHTML = `<div class="alert-warning">Error loading dashboard: ${error.message}</div>`;
+  }
 }
 
 // ---- PLAYERS TAB ----
 async function loadPlayers() {
   const el = document.getElementById('tab-players');
-  el.innerHTML = `<div>Loading players...</div>`;
+  el.innerHTML = `<div style="text-align:center;padding:2rem;"><div class="loading-spinner"></div><br>Loading players...</div>`;
   
-  const { data: users } = await supabase.from('users').select('*').order('created_at', {ascending:false});
-  const { data: txs } = await supabase.from('player_transactions').select('player_phone, amount, transaction_type, status');
-  
-  // Get all games for stats
-  const [{ data: cardGames }, { data: chessGames }, { data: guessGames }] = await Promise.all([
-    supabase.from('card_games').select('creator_username,opponent_username,winner,bet,created_at,code'),
-    supabase.from('chess_games').select('white_username,black_username,winner,bet,created_at,code'),
-    supabase.from('guess_number_games').select('creator_username,opponent_username,winner,bet,created_at,code')
-  ]);
-
-  // Build comprehensive stats
-  const userStats = {};
-  (users||[]).forEach(u=>{
-    userStats[u.phone] = {
-      deposits:0, withdrawals:0, 
-      card:0, chess:0, guess:0,
-      wins:0, losses:0, totalBet:0
-    };
-  });
-
-  // Transaction stats
-  (txs||[]).forEach(tx=>{
-    if (userStats[tx.player_phone] && tx.status === 'accepted') {
-      if (tx.transaction_type==='deposit') userStats[tx.player_phone].deposits += Math.abs(Number(tx.amount)||0);
-      else if (tx.transaction_type==='withdrawal') userStats[tx.player_phone].withdrawals += Math.abs(Number(tx.amount)||0);
-    }
-  });
-
-  // Game stats
-  const updateGameStats = (games, usernameField1, usernameField2) => {
-    (games||[]).forEach(g=>{
-      const user1 = (users||[]).find(u => u.username === g[usernameField1]);
-      const user2 = (users||[]).find(u => u.username === g[usernameField2]);
-      
-      [user1, user2].forEach(user => {
-        if (user && userStats[user.phone]) {
-          const gameType = usernameField1.includes('white') ? 'chess' : 
-                          usernameField1.includes('creator') && g.code ? 
-                          (g.code.startsWith('C') ? 'card' : 'guess') : 'card';
-          userStats[user.phone][gameType]++;
-          userStats[user.phone].totalBet += Number(g.bet || 0);
-          
-          if (g.winner === user.username) userStats[user.phone].wins++;
-          else if (g.winner && g.winner !== 'house') userStats[user.phone].losses++;
-        }
-      });
-    });
-  };
-
-  updateGameStats(cardGames, 'creator_username', 'opponent_username');
-  updateGameStats(chessGames, 'white_username', 'black_username');
-  updateGameStats(guessGames, 'creator_username', 'opponent_username');
-
-  el.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h4>Total Players</h4>
-        <div style="font-size:1.5rem;font-weight:600;color:#007bff;">${(users||[]).length}</div>
-      </div>
-      <div class="stat-card">
-        <h4>Total Balance in System</h4>
-        <div style="font-size:1.5rem;font-weight:600;color:#28a745;">
-          ${ETB((users||[]).reduce((sum, u)=>sum + (Number(u.balance)||0), 0))}
-        </div>
-      </div>
-      <div class="stat-card">
-        <h4>Average Balance</h4>
-        <div style="font-size:1.5rem;font-weight:600;color:#17a2b8;">
-          ${ETB((users||[]).reduce((sum, u)=>sum + (Number(u.balance)||0), 0) / Math.max((users||[]).length, 1))}
-        </div>
-      </div>
-    </div>
-
-    <div class="filters" style="margin-bottom:0.5rem;">
-      <label>Search: <input type="text" id="player-filter" placeholder="Username, phone, or balance..." /></label>
-      <label>Sort by: 
-        <select id="player-sort">
-          <option value="created_at">Registration Date</option>
-          <option value="balance">Balance</option>
-          <option value="games">Total Games</option>
-          <option value="wins">Win Count</option>
-        </select>
-      </label>
-      <button onclick="sortPlayers()">Apply Sort</button>
-    </div>
+  try {
+    const { data: users } = await supabase.from('users').select('*').order('created_at', {ascending:false});
+    const { data: txs } = await supabase.from('player_transactions').select('player_phone, amount, transaction_type, status');
     
-    <table class="main-table" id="players-table">
-      <thead>
-        <tr>
-          <th>Username</th>
-          <th>Phone</th>
-          <th>Balance</th>
-          <th>Deposits</th>
-          <th>Withdrawals</th>
-          <th>Games</th>
-          <th>W/L</th>
-          <th>Total Bet</th>
-          <th>Registered</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${(users||[]).map(u=>{
-          const stats = userStats[u.phone] || {};
-          const totalGames = (stats.card||0) + (stats.chess||0) + (stats.guess||0);
-          return `
-          <tr style="cursor:pointer" onclick="showUserStatsModal('${u.id}','${u.username}','${u.phone}')" data-balance="${u.balance}" data-games="${totalGames}" data-wins="${stats.wins||0}" data-created="${u.created_at}">
-            <td><strong>${u.username}</strong></td>
-            <td>${u.phone}</td>
-            <td>${ETB(u.balance)}</td>
-            <td>${ETB(stats.deposits||0)}</td>
-            <td>${ETB(stats.withdrawals||0)}</td>
-            <td>${totalGames}</td>
-            <td>${stats.wins||0}/${stats.losses||0}</td>
-            <td>${ETB(stats.totalBet||0)}</td>
-            <td>${formatDate(u.created_at)}</td>
-            <td>
-              <button class="table-action-btn" onclick="showBalanceModal('${u.id}','${u.username}',${u.balance});event.stopPropagation();">Adjust Balance</button>
-              <button class="table-action-btn danger" onclick="banUser('${u.id}','${u.username}');event.stopPropagation();">Ban</button>
-            </td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  `;
+    // Get all games for stats
+    const [{ data: cardGames }, { data: chessGames }, { data: guessGames }] = await Promise.all([
+      supabase.from('card_games').select('creator_username,opponent_username,winner,bet,created_at,code'),
+      supabase.from('chess_games').select('white_username,black_username,winner,bet,created_at,code'),
+      supabase.from('guess_number_games').select('creator_username,opponent_username,winner,bet,created_at,code')
+    ]);
 
-  // Player filtering
-  document.getElementById('player-filter').addEventListener('input', function() {
-    const v = this.value.toLowerCase();
-    document.querySelectorAll('#players-table tbody tr').forEach(tr => {
-      let show = false;
-      [...tr.children].forEach(td=>{
-        if (td.innerText.toLowerCase().includes(v)) show = true;
-      });
-      tr.style.display = show ? '' : 'none';
+    // Build comprehensive stats
+    const userStats = {};
+    (users || []).forEach(u => {
+      userStats[u.phone] = {
+        deposits: 0, withdrawals: 0, 
+        card: 0, chess: 0, guess: 0,
+        wins: 0, losses: 0, totalBet: 0
+      };
     });
-  });
 
-  // Save data for modal
-  window.__PlayersData = {users, cardGames, chessGames, guessGames};
+    // Transaction stats (check both accepted and approved)
+    (txs || []).forEach(tx => {
+      if (userStats[tx.player_phone] && (tx.status === 'accepted' || tx.status === 'approved')) {
+        if (tx.transaction_type === 'deposit') userStats[tx.player_phone].deposits += Math.abs(Number(tx.amount) || 0);
+        else if (tx.transaction_type === 'withdrawal') userStats[tx.player_phone].withdrawals += Math.abs(Number(tx.amount) || 0);
+      }
+    });
+
+    // CORRECTED Game stats with proper win/loss calculation
+    const updateGameStats = (games, usernameField1, usernameField2, gameType) => {
+      (games || []).forEach(g => {
+        const user1 = (users || []).find(u => u.username === g[usernameField1]);
+        const user2 = (users || []).find(u => u.username === g[usernameField2]);
+        
+        [user1, user2].forEach(user => {
+          if (user && userStats[user.phone]) {
+            userStats[user.phone][gameType]++;
+            userStats[user.phone].totalBet += Number(g.bet || 0);
+            
+            // CORRECTED WIN/LOSS LOGIC
+            if (gameType === 'chess') {
+              // For chess: check if winner is 'white' or 'black', then match to user
+              if (g.winner === 'white' && g.white_username === user.username) {
+                userStats[user.phone].wins++;
+              } else if (g.winner === 'black' && g.black_username === user.username) {
+                userStats[user.phone].wins++;
+              } else if (g.winner && g.winner !== 'house' && g.winner !== user.username) {
+                userStats[user.phone].losses++;
+              }
+            } else {
+              // For card and guess games: direct username comparison
+              if (g.winner === user.username) {
+                userStats[user.phone].wins++;
+              } else if (g.winner && g.winner !== 'house' && g.winner !== user.username) {
+                userStats[user.phone].losses++;
+              }
+            }
+          }
+        });
+      });
+    };
+
+    updateGameStats(cardGames, 'creator_username', 'opponent_username', 'card');
+    updateGameStats(chessGames, 'white_username', 'black_username', 'chess');
+    updateGameStats(guessGames, 'creator_username', 'opponent_username', 'guess');
+
+    el.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h4>Total Players</h4>
+          <div style="font-size:2rem;font-weight:700;color:#667eea;">${(users || []).length}</div>
+        </div>
+        <div class="stat-card">
+          <h4>Total Balance in System</h4>
+          <div style="font-size:2rem;font-weight:700;color:#48bb78;">
+            ${ETB((users || []).reduce((sum, u) => sum + (Number(u.balance) || 0), 0))}
+          </div>
+        </div>
+        <div class="stat-card">
+          <h4>Average Balance</h4>
+          <div style="font-size:2rem;font-weight:700;color:#38b2ac;">
+            ${ETB((users || []).reduce((sum, u) => sum + (Number(u.balance) || 0), 0) / Math.max((users || []).length, 1))}
+          </div>
+        </div>
+      </div>
+
+      <div class="filters">
+        <label>Search: <input type="text" id="player-filter" placeholder="Username, phone, or balance..." /></label>
+        <label>Sort by: 
+          <select id="player-sort">
+            <option value="created_at">Registration Date</option>
+            <option value="balance">Balance</option>
+            <option value="games">Total Games</option>
+            <option value="wins">Win Count</option>
+          </select>
+        </label>
+        <button onclick="sortPlayers()">Apply Sort</button>
+      </div>
+      
+      <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+        <table class="main-table" id="players-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Phone</th>
+              <th>Balance</th>
+              <th>Deposits</th>
+              <th>Withdrawals</th>
+              <th>Games</th>
+              <th>W/L</th>
+              <th>Total Bet</th>
+              <th>Registered</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(users || []).map(u => {
+              const stats = userStats[u.phone] || {};
+              const totalGames = (stats.card || 0) + (stats.chess || 0) + (stats.guess || 0);
+              return `
+              <tr style="cursor:pointer" onclick="showUserStatsModal('${u.id}','${u.username}','${u.phone}')" data-balance="${u.balance}" data-games="${totalGames}" data-wins="${stats.wins || 0}" data-created="${u.created_at}">
+                <td><strong style="color:#4a5568;">${u.username}</strong></td>
+                <td>${u.phone}</td>
+                <td><strong>${ETB(u.balance)}</strong></td>
+                <td style="color:#48bb78;">${ETB(stats.deposits || 0)}</td>
+                <td style="color:#f56565;">${ETB(stats.withdrawals || 0)}</td>
+                <td><span style="background:#edf2f7;padding:0.25rem 0.5rem;border-radius:4px;">${totalGames}</span></td>
+                <td><span style="color:#48bb78;font-weight:600;">${stats.wins || 0}</span>/<span style="color:#f56565;font-weight:600;">${stats.losses || 0}</span></td>
+                <td>${ETB(stats.totalBet || 0)}</td>
+                <td>${formatDate(u.created_at)}</td>
+                <td>
+                  <button class="table-action-btn" onclick="showBalanceModal('${u.id}','${u.username}',${u.balance});event.stopPropagation();">Adjust</button>
+                  <button class="table-action-btn danger" onclick="banUser('${u.id}','${u.username}');event.stopPropagation();">Ban</button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // Player filtering
+    document.getElementById('player-filter').addEventListener('input', function() {
+      const v = this.value.toLowerCase();
+      document.querySelectorAll('#players-table tbody tr').forEach(tr => {
+        let show = false;
+        [...tr.children].forEach(td => {
+          if (td.innerText.toLowerCase().includes(v)) show = true;
+        });
+        tr.style.display = show ? '' : 'none';
+      });
+    });
+
+    // Save data for modal
+    window.__PlayersData = {users, cardGames, chessGames, guessGames};
+
+  } catch (error) {
+    console.error('Error loading players:', error);
+    el.innerHTML = `<div class="alert-warning">Error loading players: ${error.message}</div>`;
+  }
 }
 
 // Player sorting
@@ -517,10 +1075,10 @@ window.sortPlayers = function() {
   rows.forEach(row => tbody.appendChild(row));
 };
 
-// Enhanced player stats modal
+// Enhanced player stats modal with corrected win/loss calculation
 window.showUserStatsModal = async function(userId, username, phone) {
   const {users, cardGames, chessGames, guessGames} = window.__PlayersData || {};
-  const user = (users||[]).find(u=>u.id===userId);
+  const user = (users || []).find(u => u.id === userId);
   
   // Get user's transaction history
   const { data: userTxs } = await supabase
@@ -530,30 +1088,48 @@ window.showUserStatsModal = async function(userId, username, phone) {
     .order('created_at', {ascending: false});
 
   // Gather all games where this user played
-  const card = (cardGames||[]).filter(g=>g.creator_username===username||g.opponent_username===username);
-  const chess = (chessGames||[]).filter(g=>g.white_username===username||g.black_username===username);
-  const guess = (guessGames||[]).filter(g=>g.creator_username===username||g.opponent_username===username);
+  const card = (cardGames || []).filter(g => g.creator_username === username || g.opponent_username === username);
+  const chess = (chessGames || []).filter(g => g.white_username === username || g.black_username === username);
+  const guess = (guessGames || []).filter(g => g.creator_username === username || g.opponent_username === username);
 
-  // Win/loss calculations
-  function winLoss(games, username, winnerKey='winner') {
-    let wins=0, losses=0, totalBet=0;
-    games.forEach(g=>{
+  // CORRECTED Win/loss calculations
+  function winLoss(games, username, gameType) {
+    let wins = 0, losses = 0, totalBet = 0;
+    games.forEach(g => {
       totalBet += Number(g.bet || 0);
-      if (g[winnerKey]===username) wins++;
-      else if (g[winnerKey] && g[winnerKey]!=='house' && g[winnerKey]!==username) losses++;
+      
+      if (gameType === 'chess') {
+        // For chess: check if winner is 'white' or 'black', then match to user
+        if (g.winner === 'white' && g.white_username === username) {
+          wins++;
+        } else if (g.winner === 'black' && g.black_username === username) {
+          wins++;
+        } else if (g.winner && g.winner !== 'house' && 
+                  ((g.winner === 'white' && g.white_username !== username) || 
+                   (g.winner === 'black' && g.black_username !== username))) {
+          losses++;
+        }
+      } else {
+        // For card and guess games: direct username comparison
+        if (g.winner === username) {
+          wins++;
+        } else if (g.winner && g.winner !== 'house' && g.winner !== username) {
+          losses++;
+        }
+      }
     });
     return {wins, losses, totalBet};
   }
 
-  const wlCard = winLoss(card, username);
-  const wlChess = winLoss(chess, username);
-  const wlGuess = winLoss(guess, username);
+  const wlCard = winLoss(card, username, 'card');
+  const wlChess = winLoss(chess, username, 'chess');
+  const wlGuess = winLoss(guess, username, 'guess');
 
   const allGames = [
-    ...(card||[]).map(g=>({...g, type:'Card'})),
-    ...(chess||[]).map(g=>({...g, type:'Chess'})),
-    ...(guess||[]).map(g=>({...g, type:'Guess'}))
-  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    ...(card || []).map(g => ({...g, type: 'Card'})),
+    ...(chess || []).map(g => ({...g, type: 'Chess'})),
+    ...(guess || []).map(g => ({...g, type: 'Guess'}))
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   const totalWins = wlCard.wins + wlChess.wins + wlGuess.wins;
   const totalLosses = wlCard.losses + wlChess.losses + wlGuess.losses;
@@ -573,71 +1149,80 @@ window.showUserStatsModal = async function(userId, username, phone) {
     <div class="stats-grid">
       <div class="stat-card">
         <h4>Card Games</h4>
-        <div>${card.length} games</div>
-        <div>Wins: ${wlCard.wins}, Losses: ${wlCard.losses}</div>
+        <div style="font-size:1.5rem;font-weight:600;">${card.length}</div>
+        <div>Wins: <span style="color:#48bb78;font-weight:600;">${wlCard.wins}</span>, Losses: <span style="color:#f56565;font-weight:600;">${wlCard.losses}</span></div>
         <div>Total bet: ${ETB(wlCard.totalBet)}</div>
       </div>
       <div class="stat-card">
         <h4>Chess Games</h4>
-        <div>${chess.length} games</div>
-        <div>Wins: ${wlChess.wins}, Losses: ${wlChess.losses}</div>
+        <div style="font-size:1.5rem;font-weight:600;">${chess.length}</div>
+        <div>Wins: <span style="color:#48bb78;font-weight:600;">${wlChess.wins}</span>, Losses: <span style="color:#f56565;font-weight:600;">${wlChess.losses}</span></div>
         <div>Total bet: ${ETB(wlChess.totalBet)}</div>
       </div>
       <div class="stat-card">
         <h4>Guess Number</h4>
-        <div>${guess.length} games</div>
-        <div>Wins: ${wlGuess.wins}, Losses: ${wlGuess.losses}</div>
+        <div style="font-size:1.5rem;font-weight:600;">${guess.length}</div>
+        <div>Wins: <span style="color:#48bb78;font-weight:600;">${wlGuess.wins}</span>, Losses: <span style="color:#f56565;font-weight:600;">${wlGuess.losses}</span></div>
         <div>Total bet: ${ETB(wlGuess.totalBet)}</div>
       </div>
     </div>
 
     <div class="section-title">Recent Transactions</div>
-    <table class="main-table">
-      <thead>
-        <tr><th>Type</th><th>Amount</th><th>Status</th><th>Description</th><th>Date</th></tr>
-      </thead>
-      <tbody>
-        ${(userTxs||[]).slice(0,10).map(tx=>`
-          <tr>
-            <td>${tx.transaction_type}</td>
-            <td>${ETB(Math.abs(tx.amount))}</td>
-            <td><span class="status-badge ${tx.status}">${tx.status}</span></td>
-            <td>${tx.description || '-'}</td>
-            <td>${formatDate(tx.created_at)}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+      <table class="main-table">
+        <thead>
+          <tr><th>Type</th><th>Amount</th><th>Status</th><th>Description</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          ${(userTxs || []).slice(0, 10).map(tx => `
+            <tr>
+              <td><span style="background:#edf2f7;padding:0.25rem 0.5rem;border-radius:4px;">${tx.transaction_type}</span></td>
+              <td><strong>${ETB(Math.abs(tx.amount))}</strong></td>
+              <td><span class="status-badge ${tx.status}">${tx.status}</span></td>
+              <td>${tx.description || '-'}</td>
+              <td>${formatDate(tx.created_at)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
 
     <div class="section-title">Recent Games</div>
-    <table class="main-table">
-      <thead>
-        <tr><th>Type</th><th>Code</th><th>Bet</th><th>Status</th><th>Winner</th><th>Date</th></tr>
-      </thead>
-      <tbody>
-        ${(allGames||[]).slice(0,10).map(g=>`
-          <tr>
-            <td>${g.type}</td>
-            <td>${g.code}</td>
-            <td>${ETB(g.bet)}</td>
-            <td>${g.status}</td>
-            <td>${g.winner||'-'}</td>
-            <td>${formatDate(g.created_at)}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+      <table class="main-table">
+        <thead>
+          <tr><th>Type</th><th>Code</th><th>Bet</th><th>Status</th><th>Winner</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          ${(allGames || []).slice(0, 10).map(g => `
+            <tr>
+              <td><span style="font-weight:600;">${g.type}</span></td>
+              <td><code style="background:#f7fafc;padding:0.25rem 0.5rem;border-radius:4px;">${g.code}</code></td>
+              <td>${ETB(g.bet)}</td>
+              <td><span class="status-badge ${g.status}">${g.status}</span></td>
+              <td>${g.winner || '-'}</td>
+              <td>${formatDate(g.created_at)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
   `;
   
-  showModal(`Player Profile: ${username}`, html);
+  showModal(`👤 Player Profile: ${username}`, html);
 };
 
 // Balance adjustment and ban functions
 window.banUser = function(userId, username) {
-  showModal('Ban/Suspend User',
-    `<div class="alert-warning">Are you sure you want to <b>ban/suspend</b> user <b>${username}</b>?<br><br>
-    <button class="table-action-btn danger" onclick="confirmBanUser('${userId}')">Confirm Ban</button>
-    <button class="table-action-btn" onclick="closeModal()">Cancel</button></div>`
+  showModal('🚫 Ban/Suspend User',
+    `<div class="alert-warning">
+      <span>⚠️</span>
+      <div>
+        Are you sure you want to <b>ban/suspend</b> user <b>${username}</b>?<br><br>
+        <button class="table-action-btn danger" onclick="confirmBanUser('${userId}')">Confirm Ban</button>
+        <button class="table-action-btn" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>`
   );
 }
 
@@ -649,25 +1234,33 @@ window.confirmBanUser = async function(userId) {
 }
 
 window.showBalanceModal = function(userId, username, currentBalance) {
-  showModal('Adjust Player Balance',
+  showModal('💰 Adjust Player Balance',
     `<div>
       <div class="alert-info"><strong>Current Balance:</strong> ${ETB(currentBalance)}</div>
       <br>
-      <label>Adjustment Amount:</label>
-      <input type="number" id="adj-amount" placeholder="Enter amount (ETB)" style="width:150px;margin:0.5rem 0;">
+      <div style="display:grid;gap:1rem;">
+        <label style="display:flex;flex-direction:column;gap:0.5rem;">
+          <span>Adjustment Amount:</span>
+          <input type="number" id="adj-amount" placeholder="Enter amount (ETB)" style="padding:0.75rem;border:1px solid #e2e8f0;border-radius:8px;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:0.5rem;">
+          <span>Action:</span>
+          <select id="adj-type" style="padding:0.75rem;border:1px solid #e2e8f0;border-radius:8px;">
+            <option value="add">Add to Balance</option>
+            <option value="subtract">Subtract from Balance</option>
+            <option value="set">Set Balance To</option>
+          </select>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:0.5rem;">
+          <span>Reason:</span>
+          <input type="text" id="adj-reason" placeholder="Reason for adjustment" style="padding:0.75rem;border:1px solid #e2e8f0;border-radius:8px;">
+        </label>
+      </div>
       <br>
-      <label>Action:</label>
-      <select id="adj-type" style="margin:0.5rem 0;">
-        <option value="add">Add to Balance</option>
-        <option value="subtract">Subtract from Balance</option>
-        <option value="set">Set Balance To</option>
-      </select>
-      <br>
-      <label>Reason:</label>
-      <input type="text" id="adj-reason" placeholder="Reason for adjustment" style="width:250px;margin:0.5rem 0;">
-      <br><br>
-      <button class="table-action-btn success" onclick="adjustBalance('${userId}','${username}')">Apply Adjustment</button>
-      <button class="table-action-btn" onclick="closeModal()">Cancel</button>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="table-action-btn" onclick="adjustBalance('${userId}','${username}')">Apply Adjustment</button>
+        <button class="table-action-btn warning" onclick="closeModal()">Cancel</button>
+      </div>
     </div>`
   );
 }
@@ -735,59 +1328,67 @@ window.adjustBalance = async function(userId, username) {
 // ---- GAMES TABS ----
 async function loadGames(gameType) {
   const el = document.getElementById('tab-' + gameType);
-  el.innerHTML = `<div>Loading ${gameType.replace('_',' ').toUpperCase()}...</div>`;
+  el.innerHTML = `<div style="text-align:center;padding:2rem;"><div class="loading-spinner"></div><br>Loading ${gameType.replace('_',' ').toUpperCase()}...</div>`;
   
-  el.innerHTML = `
-    <div class="filters">
-      <div><label>Date From: <input type="date" id="games-date-from"></label></div>
-      <div><label>Date To: <input type="date" id="games-date-to"></label></div>
-      <div><label>Status: 
-        <select id="games-status">
-          <option value="">All</option>
-          <option value="waiting">Waiting</option>
-          <option value="in_progress">In Progress</option>
-          <option value="finished">Finished</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </label></div>
-      <div><label>Player: <input type="text" id="games-username" placeholder="Username"></label></div>
-      <div><label>Min Bet: <input type="number" id="games-min-bet" placeholder="0"></label></div>
-      <button onclick="filterGames('${gameType}')">Filter</button>
-      <button onclick="loadGames('${gameType}')">Clear</button>
-    </div>
-    <table class="main-table" id="games-table">
-      <thead id="games-table-head"></thead>
-      <tbody id="games-table-body"></tbody>
-    </table>
-    <div id="games-stats"></div>
-  `;
+  try {
+    el.innerHTML = `
+      <div class="filters">
+        <label>Date From: <input type="date" id="games-date-from"></label>
+        <label>Date To: <input type="date" id="games-date-to"></label>
+        <label>Status: 
+          <select id="games-status">
+            <option value="">All</option>
+            <option value="waiting">Waiting</option>
+            <option value="in_progress">In Progress</option>
+            <option value="finished">Finished</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
+        <label>Player: <input type="text" id="games-username" placeholder="Username"></label>
+        <label>Min Bet: <input type="number" id="games-min-bet" placeholder="0"></label>
+        <button onclick="filterGames('${gameType}')">Filter</button>
+        <button onclick="loadGames('${gameType}')">Clear</button>
+      </div>
+      <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+        <table class="main-table" id="games-table">
+          <thead id="games-table-head"></thead>
+          <tbody id="games-table-body"></tbody>
+        </table>
+      </div>
+      <div id="games-stats"></div>
+    `;
 
-  window.filterGames = async function(gameType) {
-    const from = document.getElementById('games-date-from').value;
-    const to = document.getElementById('games-date-to').value;
-    const status = document.getElementById('games-status').value;
-    const username = document.getElementById('games-username').value.toLowerCase();
-    const minBet = parseFloat(document.getElementById('games-min-bet').value) || 0;
-    
-    let query = supabase.from(gameType).select('*');
-    if (from) query = query.gte('created_at', from+'T00:00:00+00:00');
-    if (to) query = query.lte('created_at', to+'T23:59:59+00:00');
-    if (status) query = query.eq('status', status);
-    if (minBet > 0) query = query.gte('bet', minBet);
-    
-    let { data: games } = await query.order('created_at',{ascending:false}).limit(500);
-    
-    if (username) {
-      games = games.filter(g => Object.values(g).some(v =>
-        typeof v === 'string' && v.toLowerCase().includes(username)
-      ));
-    }
-    
+    window.filterGames = async function(gameType) {
+      const from = document.getElementById('games-date-from').value;
+      const to = document.getElementById('games-date-to').value;
+      const status = document.getElementById('games-status').value;
+      const username = document.getElementById('games-username').value.toLowerCase();
+      const minBet = parseFloat(document.getElementById('games-min-bet').value) || 0;
+      
+      let query = supabase.from(gameType).select('*');
+      if (from) query = query.gte('created_at', from+'T00:00:00+00:00');
+      if (to) query = query.lte('created_at', to+'T23:59:59+00:00');
+      if (status) query = query.eq('status', status);
+      if (minBet > 0) query = query.gte('bet', minBet);
+      
+      let { data: games } = await query.order('created_at',{ascending:false}).limit(500);
+      
+      if (username) {
+        games = games.filter(g => Object.values(g).some(v =>
+          typeof v === 'string' && v.toLowerCase().includes(username)
+        ));
+      }
+      
+      renderGamesTable(gameType, games);
+    };
+
+    let { data: games } = await supabase.from(gameType).select('*').order('created_at', {ascending:false}).limit(200);
     renderGamesTable(gameType, games);
-  };
 
-  let { data: games } = await supabase.from(gameType).select('*').order('created_at', {ascending:false}).limit(200);
-  renderGamesTable(gameType, games);
+  } catch (error) {
+    console.error('Error loading games:', error);
+    el.innerHTML = `<div class="alert-warning">Error loading games: ${error.message}</div>`;
+  }
 }
 
 function renderGamesTable(gameType, games) {
@@ -818,13 +1419,13 @@ function renderGamesTable(gameType, games) {
     const revenue = g.status === 'finished' ? Number(g.bet || 0) * 2 * 0.20 : 0;
     
     return `<tr>
-      <td><strong>${g.code}</strong></td>
+      <td><code style="background:#f7fafc;padding:0.25rem 0.5rem;border-radius:4px;">${g.code}</code></td>
       <td>${c1||'-'}</td>
       <td>${c2||'-'}</td>
-      <td>${ETB(g.bet)}</td>
+      <td><strong>${ETB(g.bet)}</strong></td>
       <td><span class="status-badge ${g.status}">${g.status}</span></td>
       <td>${g.winner||'-'}</td>
-      <td>${ETB(revenue)}</td>
+      <td><strong style="color:#48bb78;">${ETB(revenue)}</strong></td>
       <td>${formatDate(g.created_at)}</td>
       <td>
         <button class="table-action-btn" onclick="showGameDetails('${gameType}','${g.code}')">Details</button>
@@ -836,19 +1437,19 @@ function renderGamesTable(gameType, games) {
     <div class="stats-grid" style="margin-top:1rem;">
       <div class="stat-card">
         <h4>Total Games</h4>
-        <div style="font-size:1.5rem;font-weight:600;">${totalGames}</div>
+        <div style="font-size:2rem;font-weight:700;color:#667eea;">${totalGames}</div>
       </div>
       <div class="stat-card">
         <h4>Finished Games</h4>
-        <div style="font-size:1.5rem;font-weight:600;">${finishedGames}</div>
+        <div style="font-size:2rem;font-weight:700;color:#48bb78;">${finishedGames}</div>
       </div>
       <div class="stat-card">
         <h4>Total Bets</h4>
-        <div style="font-size:1.5rem;font-weight:600;">${ETB(totalBets)}</div>
+        <div style="font-size:2rem;font-weight:700;color:#ed8936;">${ETB(totalBets)}</div>
       </div>
       <div class="stat-card">
         <h4>House Revenue</h4>
-        <div style="font-size:1.5rem;font-weight:600;">${ETB(houseRevenue)}</div>
+        <div style="font-size:2rem;font-weight:700;color:#38b2ac;">${ETB(houseRevenue)}</div>
       </div>
     </div>
   `;
@@ -862,132 +1463,144 @@ window.showGameDetails = async function(gameType, code) {
   let html = '<div style="max-height:400px;overflow-y:auto;">';
   Object.entries(g).forEach(([k,v])=>{
     if (typeof v === 'object' && v !== null) {
-      html += `<div style="margin:0.5rem 0;"><b>${k}:</b> <pre style="background:#f5f5f5;padding:0.5rem;border-radius:0.3rem;overflow-x:auto;">${JSON.stringify(v, null, 2)}</pre></div>`;
+      html += `<div style="margin:0.5rem 0;"><b>${k}:</b> <pre style="background:#f7fafc;padding:0.75rem;border-radius:8px;overflow-x:auto;">${JSON.stringify(v, null, 2)}</pre></div>`;
     } else {
-      html += `<div style="margin:0.3rem 0;"><b>${k}:</b> ${v===null?'<em>null</em>':v}</div>`;
+      html += `<div style="margin:0.5rem 0;"><b>${k}:</b> ${v===null?'<em>null</em>':v}</div>`;
     }
   });
   html += '</div>';
   
-  showModal(`${gameType.replace('_',' ').toUpperCase()} Details [${code}]`, html);
+  showModal(`🎮 ${gameType.replace('_',' ').toUpperCase()} Details [${code}]`, html);
 }
 
 // ---- DEPOSITS & WITHDRAWALS TAB ---- 
 async function loadDepositsWithdraws() {
   const el = document.getElementById('tab-deposits_withdraws');
-  el.innerHTML = '<div>Loading transactions...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:2rem;"><div class="loading-spinner"></div><br>Loading transactions...</div>';
   
-  const { data: txs } = await supabase
-    .from('player_transactions')
-    .select('*')
-    .order('created_at',{ascending:false})
-    .limit(300);
-    
-  const { data: users } = await supabase.from('users').select('id,username,phone,balance');
+  try {
+    const { data: txs } = await supabase
+      .from('player_transactions')
+      .select('*')
+      .order('created_at',{ascending:false})
+      .limit(300);
+      
+    const { data: users } = await supabase.from('users').select('id,username,phone,balance');
 
-  // Calculate summary stats
-  const pendingDeposits = (txs||[]).filter(tx => tx.transaction_type === 'deposit' && tx.status === 'pending');
-  const pendingWithdrawals = (txs||[]).filter(tx => tx.transaction_type === 'withdrawal' && tx.status === 'pending');
-  const todayTxs = (txs||[]).filter(tx => tx.created_at.startsWith(new Date().toISOString().slice(0,10)));
-  const todayDeposits = todayTxs.filter(tx => tx.transaction_type === 'deposit' && tx.status === 'accepted');
-  const todayWithdrawals = todayTxs.filter(tx => tx.transaction_type === 'withdrawal' && tx.status === 'accepted');
+    // Calculate summary stats
+    const pendingDeposits = (txs||[]).filter(tx => tx.transaction_type === 'deposit' && tx.status === 'pending');
+    const pendingWithdrawals = (txs||[]).filter(tx => tx.transaction_type === 'withdrawal' && tx.status === 'pending');
+    const todayTxs = (txs||[]).filter(tx => tx.created_at.startsWith(new Date().toISOString().slice(0,10)));
+    const todayDeposits = todayTxs.filter(tx => tx.transaction_type === 'deposit' && (tx.status === 'accepted' || tx.status === 'approved'));
+    const todayWithdrawals = todayTxs.filter(tx => tx.transaction_type === 'withdrawal' && (tx.status === 'accepted' || tx.status === 'approved'));
 
-  el.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card" style="border-left-color:#ffc107;">
-        <h4>Pending Deposits</h4>
-        <div style="font-size:1.5rem;font-weight:600;color:#856404;">${pendingDeposits.length}</div>
-        <div>Total: ${ETB(pendingDeposits.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
+    el.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card" style="border-left-color:#ed8936;">
+          <h4>Pending Deposits</h4>
+          <div style="font-size:2rem;font-weight:700;color:#c05621;">${pendingDeposits.length}</div>
+          <div>Total: ${ETB(pendingDeposits.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#f56565;">
+          <h4>Pending Withdrawals</h4>
+          <div style="font-size:2rem;font-weight:700;color:#c53030;">${pendingWithdrawals.length}</div>
+          <div>Total: ${ETB(pendingWithdrawals.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#48bb78;">
+          <h4>Today's Deposits</h4>
+          <div style="font-size:2rem;font-weight:700;color:#2f855a;">${todayDeposits.length}</div>
+          <div>Total: ${ETB(todayDeposits.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#38b2ac;">
+          <h4>Today's Withdrawals</h4>
+          <div style="font-size:2rem;font-weight:700;color:#2c7a7b;">${todayWithdrawals.length}</div>
+          <div>Total: ${ETB(todayWithdrawals.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
+        </div>
       </div>
-      <div class="stat-card" style="border-left-color:#dc3545;">
-        <h4>Pending Withdrawals</h4>
-        <div style="font-size:1.5rem;font-weight:600;color:#721c24;">${pendingWithdrawals.length}</div>
-        <div>Total: ${ETB(pendingWithdrawals.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
-      </div>
-      <div class="stat-card" style="border-left-color:#28a745;">
-        <h4>Today's Deposits</h4>
-        <div style="font-size:1.5rem;font-weight:600;color:#155724;">${todayDeposits.length}</div>
-        <div>Total: ${ETB(todayDeposits.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
-      </div>
-      <div class="stat-card" style="border-left-color:#17a2b8;">
-        <h4>Today's Withdrawals</h4>
-        <div style="font-size:1.5rem;font-weight:600;color:#0c5460;">${todayWithdrawals.length}</div>
-        <div>Total: ${ETB(todayWithdrawals.reduce((s,tx)=>s+Math.abs(tx.amount||0),0))}</div>
-      </div>
-    </div>
 
-    <div class="filters">
-      <label>Status: 
-        <select id="tx-status-filter">
-          <option value="">All</option>
-          <option value="pending">Pending</option>
-          <option value="accepted">Accepted</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </label>
-      <label>Type: 
-        <select id="tx-type-filter">
-          <option value="">All</option>
-          <option value="deposit">Deposit</option>
-          <option value="withdrawal">Withdrawal</option>
-        </select>
-      </label>
-      <input type="text" id="tx-user-filter" placeholder="Username or phone">
-      <button onclick="filterTxs()">Filter</button>
-      <button onclick="loadDepositsWithdraws()">Clear</button>
-    </div>
-    
-    <div class="alert-info">
-      <strong>Transaction Logic:</strong><br>
-      • <strong>Deposits:</strong> Users submit with transaction ID → Pending → Admin approves → Balance added<br>
-      • <strong>Withdrawals:</strong> Users request → Balance immediately deducted → Pending → Admin processes transfer<br>
-      • <strong>Rejecting withdrawals</strong> will refund the amount back to user's balance
-    </div>
-    
-    <table class="main-table" id="tx-table">
-      <thead>
-        <tr><th>User</th><th>Phone</th><th>Type</th><th>Amount</th><th>Status</th><th>Description</th><th>Balance Before/After</th><th>Date</th><th>Actions</th></tr>
-      </thead>
-      <tbody>
-        ${(txs||[]).map(tx=>{
-          const u = (users||[]).find(u=>u.phone===tx.player_phone)||{};
-          return `<tr>
-            <td><strong>${u.username||'Unknown'}</strong><br><small>ID: ${u.id||'N/A'}</small></td>
-            <td>${tx.player_phone}</td>
-            <td><span class="label-badge">${tx.transaction_type}</span></td>
-            <td>${ETB(Math.abs(tx.amount||0))}</td>
-            <td><span class="status-badge ${tx.status}">${tx.status}</span></td>
-            <td><small>${tx.description || '-'}</small></td>
-            <td>${ETB(tx.balance_before||0)} → ${ETB(tx.balance_after||0)}</td>
-            <td>${formatDate(tx.created_at)}</td>
-            <td>
-              ${tx.status==='pending'?`
-                <button class="table-action-btn success" onclick="acceptTransaction(${tx.id},'${tx.transaction_type}')">Accept</button>
-                <button class="table-action-btn danger" onclick="rejectTransaction(${tx.id},'${tx.transaction_type}')">Reject</button>
-              `:'<em>Processed</em>'}
-            </td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  `;
+      <div class="filters">
+        <label>Status: 
+          <select id="tx-status-filter">
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </label>
+        <label>Type: 
+          <select id="tx-type-filter">
+            <option value="">All</option>
+            <option value="deposit">Deposit</option>
+            <option value="withdrawal">Withdrawal</option>
+          </select>
+        </label>
+        <label>User: <input type="text" id="tx-user-filter" placeholder="Username or phone"></label>
+        <button onclick="filterTxs()">Filter</button>
+        <button onclick="loadDepositsWithdraws()">Clear</button>
+      </div>
+      
+      <div class="alert-info">
+        <strong>💡 Transaction Logic:</strong><br>
+        • <strong>Deposits:</strong> Users submit with transaction ID → Pending → Admin approves/accepts → Balance added<br>
+        • <strong>Withdrawals:</strong> Users request → Balance immediately deducted → Pending → Admin processes transfer<br>
+        • <strong>Rejecting withdrawals</strong> will refund the amount back to user's balance
+      </div>
+      
+      <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+        <table class="main-table" id="tx-table">
+          <thead>
+            <tr><th>User</th><th>Phone</th><th>Type</th><th>Amount</th><th>Status</th><th>Description</th><th>Balance Before/After</th><th>Date</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            ${(txs||[]).map(tx=>{
+              const u = (users||[]).find(u=>u.phone===tx.player_phone)||{};
+              return `<tr>
+                <td><strong style="color:#4a5568;">${u.username||'Unknown'}</strong><br><small style="color:#718096;">ID: ${u.id||'N/A'}</small></td>
+                <td>${tx.player_phone}</td>
+                <td><span style="background:#edf2f7;padding:0.25rem 0.5rem;border-radius:4px;font-weight:600;">${tx.transaction_type}</span></td>
+                <td><strong style="color:#2d3748;">${ETB(Math.abs(tx.amount||0))}</strong></td>
+                <td><span class="status-badge ${tx.status}">${tx.status}</span></td>
+                <td><small style="color:#718096;">${tx.description || '-'}</small></td>
+                <td><span style="color:#718096;">${ETB(tx.balance_before||0)}</span> → <strong>${ETB(tx.balance_after||0)}</strong></td>
+                <td>${formatDate(tx.created_at)}</td>
+                <td>
+                  ${tx.status==='pending'?`
+                    <button class="table-action-btn" onclick="acceptTransaction(${tx.id},'${tx.transaction_type}')">Accept</button>
+                    <button class="table-action-btn danger" onclick="rejectTransaction(${tx.id},'${tx.transaction_type}')">Reject</button>
+                  `:'<em style="color:#718096;">Processed</em>'}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
 
-  window.filterTxs = function(){
-    const status = document.getElementById('tx-status-filter').value;
-    const type = document.getElementById('tx-type-filter').value;
-    const user = document.getElementById('tx-user-filter').value.toLowerCase();
-    
-    document.querySelectorAll('#tx-table tbody tr').forEach(tr=>{
-      let show = true;
-      if (status && !tr.children[4].innerText.toLowerCase().includes(status)) show = false;
-      if (type && !tr.children[2].innerText.toLowerCase().includes(type)) show = false;
-      if (user && !tr.children[0].innerText.toLowerCase().includes(user) && !tr.children[1].innerText.toLowerCase().includes(user)) show = false;
-      tr.style.display = show ? '' : 'none';
-    });
-  };
+    window.filterTxs = function(){
+      const status = document.getElementById('tx-status-filter').value;
+      const type = document.getElementById('tx-type-filter').value;
+      const user = document.getElementById('tx-user-filter').value.toLowerCase();
+      
+      document.querySelectorAll('#tx-table tbody tr').forEach(tr=>{
+        let show = true;
+        if (status && !tr.children[4].innerText.toLowerCase().includes(status)) show = false;
+        if (type && !tr.children[2].innerText.toLowerCase().includes(type)) show = false;
+        if (user && !tr.children[0].innerText.toLowerCase().includes(user) && !tr.children[1].innerText.toLowerCase().includes(user)) show = false;
+        tr.style.display = show ? '' : 'none';
+      });
+    };
+
+    // Update pending badge
+    updatePendingBadge();
+
+  } catch (error) {
+    console.error('Error loading transactions:', error);
+    el.innerHTML = `<div class="alert-warning">Error loading transactions: ${error.message}</div>`;
+  }
 }
 
-// CORRECTED TRANSACTION LOGIC
+// CORRECTED TRANSACTION LOGIC - Now handles both 'accepted' and 'approved' status
 window.acceptTransaction = async function(txId, transactionType) {
   try {
     const { data: tx } = await supabase.from('player_transactions').select('*').eq('id',txId).single();
@@ -1018,7 +1631,7 @@ window.acceptTransaction = async function(txId, transactionType) {
     // Update transaction status and user balance
     await Promise.all([
       supabase.from('player_transactions').update({
-        status:'accepted',
+        status:'accepted', // Use 'accepted' as the approved status
         balance_after: newBalance
       }).eq('id',txId),
       transactionType === 'deposit' ? 
@@ -1029,6 +1642,7 @@ window.acceptTransaction = async function(txId, transactionType) {
     alert(message);
     loadDepositsWithdraws();
     loadDashboard();
+    updatePendingBadge();
   } catch (error) {
     console.error('Accept transaction error:', error);
     alert('Failed to process transaction. Please try again.');
@@ -1075,6 +1689,7 @@ window.rejectTransaction = async function(txId, transactionType) {
     alert(message);
     loadDepositsWithdraws();
     loadDashboard();
+    updatePendingBadge();
   } catch (error) {
     console.error('Reject transaction error:', error);
     alert('Failed to reject transaction. Please try again.');
@@ -1084,238 +1699,252 @@ window.rejectTransaction = async function(txId, transactionType) {
 // ---- ANALYTICS TAB ----
 async function loadAnalytics() {
   const el = document.getElementById('tab-analytics');
-  el.innerHTML = '<div>Loading analytics...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:2rem;"><div class="loading-spinner"></div><br>Loading analytics...</div>';
 
-  // Get comprehensive data for analytics
-  const [
-    { data: users }, { data: allTxs }, { data: cardGames }, 
-    { data: chessGames }, { data: guessGames }
-  ] = await Promise.all([
-    supabase.from('users').select('*'),
-    supabase.from('player_transactions').select('*'),
-    supabase.from('card_games').select('*'),
-    supabase.from('chess_games').select('*'),
-    supabase.from('guess_number_games').select('*')
-  ]);
+  try {
+    // Get comprehensive data for analytics
+    const [
+      { data: users }, { data: allTxs }, { data: cardGames }, 
+      { data: chessGames }, { data: guessGames }
+    ] = await Promise.all([
+      supabase.from('users').select('*'),
+      supabase.from('player_transactions').select('*'),
+      supabase.from('card_games').select('*'),
+      supabase.from('chess_games').select('*'),
+      supabase.from('guess_number_games').select('*')
+    ]);
 
-  // Calculate comprehensive analytics
-  const totalUsers = (users||[]).length;
-  const systemBalance = (users||[]).reduce((sum, u) => sum + (Number(u.balance)||0), 0);
-  
-  const acceptedTxs = (allTxs||[]).filter(tx => tx.status === 'accepted');
-  const totalDeposits = acceptedTxs.filter(tx => tx.transaction_type === 'deposit')
-    .reduce((sum, tx) => sum + Math.abs(Number(tx.amount)||0), 0);
-  const totalWithdrawals = acceptedTxs.filter(tx => tx.transaction_type === 'withdrawal')
-    .reduce((sum, tx) => sum + Math.abs(Number(tx.amount)||0), 0);
-
-  const allGames = [...(cardGames||[]), ...(chessGames||[]), ...(guessGames||[])];
-  const finishedGames = allGames.filter(g => g.status === 'finished');
-  const totalHouseRevenue = finishedGames.reduce((sum, g) => sum + (Number(g.bet)||0) * 2 * 0.20, 0);
-
-  // User activity analysis
-  const activeUsers30d = (users||[]).filter(u => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return new Date(u.created_at) >= thirtyDaysAgo;
-  }).length;
-
-  // Game type popularity
-  const gameStats = {
-    card: (cardGames||[]).length,
-    chess: (chessGames||[]).length,
-    guess: (guessGames||[]).length
-  };
-
-  // Monthly growth data
-  const monthlyData = {};
-  (users||[]).forEach(u => {
-    const month = u.created_at.slice(0,7); // YYYY-MM
-    monthlyData[month] = (monthlyData[month] || 0) + 1;
-  });
-
-  el.innerHTML = `
-    <div class="section-title">Platform Analytics</div>
+    // Calculate comprehensive analytics
+    const totalUsers = (users||[]).length;
+    const systemBalance = (users||[]).reduce((sum, u) => sum + (Number(u.balance)||0), 0);
     
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h4>Total Platform Value</h4>
-        <div style="font-size:1.8rem;font-weight:600;color:#007bff;">${ETB(systemBalance + totalHouseRevenue)}</div>
-        <div>System: ${ETB(systemBalance)} + House: ${ETB(totalHouseRevenue)}</div>
-      </div>
-      <div class="stat-card">
-        <h4>Net Cash Flow</h4>
-        <div style="font-size:1.8rem;font-weight:600;color:${totalDeposits > totalWithdrawals ? '#28a745' : '#dc3545'};">
-          ${ETB(totalDeposits - totalWithdrawals)}
-        </div>
-        <div>Deposits: ${ETB(totalDeposits)}<br>Withdrawals: ${ETB(totalWithdrawals)}</div>
-      </div>
-      <div class="stat-card">
-        <h4>User Growth</h4>
-        <div style="font-size:1.8rem;font-weight:600;color:#17a2b8;">${totalUsers}</div>
-        <div>New this month: ${activeUsers30d}</div>
-      </div>
-      <div class="stat-card">
-        <h4>Game Activity</h4>
-        <div style="font-size:1.8rem;font-weight:600;color:#6f42c1;">${allGames.length}</div>
-        <div>Finished: ${finishedGames.length} (${(finishedGames.length/Math.max(allGames.length,1)*100).toFixed(1)}%)</div>
-      </div>
-    </div>
+    const acceptedTxs = (allTxs||[]).filter(tx => tx.status === 'accepted' || tx.status === 'approved');
+    const totalDeposits = acceptedTxs.filter(tx => tx.transaction_type === 'deposit')
+      .reduce((sum, tx) => sum + Math.abs(Number(tx.amount)||0), 0);
+    const totalWithdrawals = acceptedTxs.filter(tx => tx.transaction_type === 'withdrawal')
+      .reduce((sum, tx) => sum + Math.abs(Number(tx.amount)||0), 0);
 
-    <div class="two-column">
-      <div>
-        <div class="section-title">Game Type Popularity</div>
-        <div class="chart-container">
-          <canvas id="gameTypeChart"></canvas>
+    const allGames = [...(cardGames||[]), ...(chessGames||[]), ...(guessGames||[])];
+    const finishedGames = allGames.filter(g => g.status === 'finished');
+    const totalHouseRevenue = finishedGames.reduce((sum, g) => sum + (Number(g.bet)||0) * 2 * 0.20, 0);
+
+    // User activity analysis
+    const activeUsers30d = (users||[]).filter(u => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return new Date(u.created_at) >= thirtyDaysAgo;
+    }).length;
+
+    // Game type popularity
+    const gameStats = {
+      card: (cardGames||[]).length,
+      chess: (chessGames||[]).length,
+      guess: (guessGames||[]).length
+    };
+
+    // Monthly growth data
+    const monthlyData = {};
+    (users||[]).forEach(u => {
+      const month = u.created_at.slice(0,7); // YYYY-MM
+      monthlyData[month] = (monthlyData[month] || 0) + 1;
+    });
+
+    el.innerHTML = `
+      <div class="section-title">📈 Platform Analytics</div>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h4>Total Platform Value</h4>
+          <div style="font-size:2rem;font-weight:700;color:#667eea;">${ETB(systemBalance + totalHouseRevenue)}</div>
+          <div>System: ${ETB(systemBalance)} + House: ${ETB(totalHouseRevenue)}</div>
         </div>
-        
-        <div class="section-title">Revenue Breakdown</div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h4>Card Games Revenue</h4>
-            <div>${ETB((cardGames||[]).filter(g=>g.status==='finished').reduce((s,g)=>s+(Number(g.bet)||0)*2*0.20,0))}</div>
+        <div class="stat-card">
+          <h4>Net Cash Flow</h4>
+          <div style="font-size:2rem;font-weight:700;color:${totalDeposits > totalWithdrawals ? '#48bb78' : '#f56565'};">
+            ${ETB(totalDeposits - totalWithdrawals)}
           </div>
-          <div class="stat-card">
-            <h4>Chess Games Revenue</h4>
-            <div>${ETB((chessGames||[]).filter(g=>g.status==='finished').reduce((s,g)=>s+(Number(g.bet)||0)*2*0.20,0))}</div>
+          <div>Deposits: ${ETB(totalDeposits)}<br>Withdrawals: ${ETB(totalWithdrawals)}</div>
+        </div>
+        <div class="stat-card">
+          <h4>User Growth</h4>
+          <div style="font-size:2rem;font-weight:700;color:#38b2ac;">${totalUsers}</div>
+          <div>New this month: ${activeUsers30d}</div>
+        </div>
+        <div class="stat-card">
+          <h4>Game Activity</h4>
+          <div style="font-size:2rem;font-weight:700;color:#9f7aea;">${allGames.length}</div>
+          <div>Finished: ${finishedGames.length} (${(finishedGames.length/Math.max(allGames.length,1)*100).toFixed(1)}%)</div>
+        </div>
+      </div>
+
+      <div class="two-column">
+        <div>
+          <div class="section-title">🎮 Game Type Popularity</div>
+          <div class="chart-container">
+            <canvas id="gameTypeChart"></canvas>
           </div>
-          <div class="stat-card">
-            <h4>Guess Games Revenue</h4>
-            <div>${ETB((guessGames||[]).filter(g=>g.status==='finished').reduce((s,g)=>s+(Number(g.bet)||0)*2*0.20,0))}</div>
+          
+          <div class="section-title">💰 Revenue Breakdown</div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h4>Card Games Revenue</h4>
+              <div style="font-size:1.5rem;font-weight:600;">${ETB((cardGames||[]).filter(g=>g.status==='finished').reduce((s,g)=>s+(Number(g.bet)||0)*2*0.20,0))}</div>
+            </div>
+            <div class="stat-card">
+              <h4>Chess Games Revenue</h4>
+              <div style="font-size:1.5rem;font-weight:600;">${ETB((chessGames||[]).filter(g=>g.status==='finished').reduce((s,g)=>s+(Number(g.bet)||0)*2*0.20,0))}</div>
+            </div>
+            <div class="stat-card">
+              <h4>Guess Games Revenue</h4>
+              <div style="font-size:1.5rem;font-weight:600;">${ETB((guessGames||[]).filter(g=>g.status==='finished').reduce((s,g)=>s+(Number(g.bet)||0)*2*0.20,0))}</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-title">📊 User Registration Trend</div>
+          <div class="chart-container">
+            <canvas id="userGrowthChart"></canvas>
+          </div>
+          
+          <div class="section-title">💸 Transaction Volume</div>
+          <div class="chart-container">
+            <canvas id="volumeChart"></canvas>
           </div>
         </div>
       </div>
 
-      <div>
-        <div class="section-title">User Registration Trend</div>
-        <div class="chart-container">
-          <canvas id="userGrowthChart"></canvas>
-        </div>
-        
-        <div class="section-title">Transaction Volume</div>
-        <div class="chart-container">
-          <canvas id="volumeChart"></canvas>
-        </div>
+      <div class="section-title">🏆 Top Players by Activity</div>
+      <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+        <table class="main-table">
+          <thead>
+            <tr><th>Username</th><th>Balance</th><th>Games Played</th><th>Total Bet</th><th>Win Rate</th></tr>
+          </thead>
+          <tbody>
+            ${(users||[]).map(u => {
+              const userGames = allGames.filter(g => 
+                g.creator_username === u.username || g.opponent_username === u.username ||
+                g.white_username === u.username || g.black_username === u.username
+              );
+              const wins = userGames.filter(g => g.winner === u.username).length;
+              const totalBet = userGames.reduce((s,g) => s + (Number(g.bet)||0), 0);
+              const winRate = userGames.length > 0 ? (wins / userGames.length * 100).toFixed(1) : '0';
+              return {user: u, games: userGames.length, wins, totalBet, winRate};
+            }).sort((a,b) => b.games - a.games).slice(0,10).map(data => `
+              <tr>
+                <td><strong style="color:#4a5568;">${data.user.username}</strong></td>
+                <td><strong>${ETB(data.user.balance)}</strong></td>
+                <td><span style="background:#edf2f7;padding:0.25rem 0.5rem;border-radius:4px;">${data.games}</span></td>
+                <td>${ETB(data.totalBet)}</td>
+                <td><span style="color:#48bb78;font-weight:600;">${data.winRate}%</span> (${data.wins}/${data.games})</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-    </div>
+    `;
 
-    <div class="section-title">Top Players by Activity</div>
-    <table class="main-table">
-      <thead>
-        <tr><th>Username</th><th>Balance</th><th>Games Played</th><th>Total Bet</th><th>Win Rate</th></tr>
-      </thead>
-      <tbody>
-        ${(users||[]).map(u => {
-          const userGames = allGames.filter(g => 
-            g.creator_username === u.username || g.opponent_username === u.username ||
-            g.white_username === u.username || g.black_username === u.username
-          );
-          const wins = userGames.filter(g => g.winner === u.username).length;
-          const totalBet = userGames.reduce((s,g) => s + (Number(g.bet)||0), 0);
-          const winRate = userGames.length > 0 ? (wins / userGames.length * 100).toFixed(1) : '0';
-          return {user: u, games: userGames.length, wins, totalBet, winRate};
-        }).sort((a,b) => b.games - a.games).slice(0,10).map(data => `
-          <tr>
-            <td><strong>${data.user.username}</strong></td>
-            <td>${ETB(data.user.balance)}</td>
-            <td>${data.games}</td>
-            <td>${ETB(data.totalBet)}</td>
-            <td>${data.winRate}% (${data.wins}/${data.games})</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
+    setTimeout(() => {
+      // Game type pie chart
+      new Chart(document.getElementById('gameTypeChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Card Games', 'Chess Games', 'Guess Number'],
+          datasets: [{
+            data: [gameStats.card, gameStats.chess, gameStats.guess],
+            backgroundColor: ['#ff6384', '#36a2eb', '#ffce56'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          plugins: { 
+            title: {display:true, text:'Games by Type'},
+            legend: { position: 'bottom' }
+          },
+          responsive: true
+        }
+      });
 
-  setTimeout(() => {
-    // Game type pie chart
-    new Chart(document.getElementById('gameTypeChart'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Card Games', 'Chess Games', 'Guess Number'],
-        datasets: [{
-          data: [gameStats.card, gameStats.chess, gameStats.guess],
-          backgroundColor: ['#ff6384', '#36a2eb', '#ffce56']
-        }]
-      },
-      options: {
-        plugins: { title: {display:true, text:'Games by Type'} },
-        responsive: true
-      }
-    });
+      // User growth chart
+      const months = Object.keys(monthlyData).sort();
+      new Chart(document.getElementById('userGrowthChart'), {
+        type: 'line',
+        data: {
+          labels: months.map(m => new Date(m + '-01').toLocaleDateString('en-US', {month:'short', year:'numeric'})),
+          datasets: [{
+            label: 'New Users',
+            data: months.map(m => monthlyData[m]),
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          plugins: { title: {display:true, text:'Monthly User Growth'} },
+          responsive: true,
+          scales: { y: { beginAtZero:true } }
+        }
+      });
 
-    // User growth chart
-    const months = Object.keys(monthlyData).sort();
-    new Chart(document.getElementById('userGrowthChart'), {
-      type: 'line',
-      data: {
-        labels: months.map(m => new Date(m + '-01').toLocaleDateString('en-US', {month:'short', year:'numeric'})),
-        datasets: [{
-          label: 'New Users',
-          data: months.map(m => monthlyData[m]),
-          borderColor: '#007bff',
-          backgroundColor: 'rgba(0,123,255,0.1)',
-          fill: true
-        }]
-      },
-      options: {
-        plugins: { title: {display:true, text:'Monthly User Growth'} },
-        responsive: true,
-        scales: { y: { beginAtZero:true } }
-      }
-    });
+      // Transaction volume chart
+      const txByMonth = {};
+      acceptedTxs.forEach(tx => {
+        const month = tx.created_at.slice(0,7);
+        txByMonth[month] = txByMonth[month] || {deposits: 0, withdrawals: 0};
+        if (tx.transaction_type === 'deposit') txByMonth[month].deposits += Math.abs(Number(tx.amount)||0);
+        else if (tx.transaction_type === 'withdrawal') txByMonth[month].withdrawals += Math.abs(Number(tx.amount)||0);
+      });
 
-    // Transaction volume chart
-    const txByMonth = {};
-    acceptedTxs.forEach(tx => {
-      const month = tx.created_at.slice(0,7);
-      txByMonth[month] = txByMonth[month] || {deposits: 0, withdrawals: 0};
-      if (tx.transaction_type === 'deposit') txByMonth[month].deposits += Math.abs(Number(tx.amount)||0);
-      else if (tx.transaction_type === 'withdrawal') txByMonth[month].withdrawals += Math.abs(Number(tx.amount)||0);
-    });
+      const txMonths = Object.keys(txByMonth).sort();
+      new Chart(document.getElementById('volumeChart'), {
+        type: 'bar',
+        data: {
+          labels: txMonths.map(m => new Date(m + '-01').toLocaleDateString('en-US', {month:'short', year:'numeric'})),
+          datasets: [
+            {label: 'Deposits', data: txMonths.map(m => txByMonth[m]?.deposits||0), backgroundColor:'rgba(72, 187, 120, 0.8)'},
+            {label: 'Withdrawals', data: txMonths.map(m => txByMonth[m]?.withdrawals||0), backgroundColor:'rgba(245, 101, 101, 0.8)'}
+          ]
+        },
+        options: {
+          plugins: { title: {display:true, text:'Monthly Transaction Volume'} },
+          responsive: true,
+          scales: { y: { beginAtZero:true } }
+        }
+      });
+    }, 100);
 
-    const txMonths = Object.keys(txByMonth).sort();
-    new Chart(document.getElementById('volumeChart'), {
-      type: 'bar',
-      data: {
-        labels: txMonths.map(m => new Date(m + '-01').toLocaleDateString('en-US', {month:'short', year:'numeric'})),
-        datasets: [
-          {label: 'Deposits', data: txMonths.map(m => txByMonth[m]?.deposits||0), backgroundColor:'#28a745'},
-          {label: 'Withdrawals', data: txMonths.map(m => txByMonth[m]?.withdrawals||0), backgroundColor:'#dc3545'}
-        ]
-      },
-      options: {
-        plugins: { title: {display:true, text:'Monthly Transaction Volume'} },
-        responsive: true,
-        scales: { y: { beginAtZero:true } }
-      }
-    });
-  }, 100);
+  } catch (error) {
+    console.error('Error loading analytics:', error);
+    el.innerHTML = `<div class="alert-warning">Error loading analytics: ${error.message}</div>`;
+  }
 }
 
 // ---- GAME CODE SEARCH ----
 async function loadGameSearch() {
   const el = document.getElementById('tab-search');
   el.innerHTML = `
-    <div class="section-title">Game Code Search</div>
+    <div class="section-title">🔍 Game Code Search</div>
     <div class="search-bar">
       <input type="text" id="game-search-code" placeholder="Enter any game code..." />
       <button onclick="searchGameCode()">Search</button>
     </div>
     <div id="game-search-result"></div>
     
-    <div class="section-title">Advanced Search</div>
+    <div class="section-title">🔎 Advanced Search</div>
     <div class="filters">
-      <div><label>Game Type:
+      <label>Game Type:
         <select id="search-game-type">
           <option value="">All Types</option>
           <option value="card_games">Card Games</option>
           <option value="chess_games">Chess Games</option>
           <option value="guess_number_games">Guess Number Games</option>
         </select>
-      </label></div>
-      <div><label>Player: <input type="text" id="search-player" placeholder="Username"></label></div>
-      <div><label>Min Bet: <input type="number" id="search-min-bet" placeholder="0"></label></div>
-      <div><label>Date From: <input type="date" id="search-date-from"></label></div>
+      </label>
+      <label>Player: <input type="text" id="search-player" placeholder="Username"></label>
+      <label>Min Bet: <input type="number" id="search-min-bet" placeholder="0"></label>
+      <label>Date From: <input type="date" id="search-date-from"></label>
       <button onclick="advancedGameSearch()">Advanced Search</button>
     </div>
     <div id="advanced-search-results"></div>
@@ -1344,7 +1973,7 @@ window.searchGameCode = async function() {
   
   const resultEl = document.getElementById('game-search-result');
   if (!found) {
-    resultEl.innerHTML = `<div class="alert-warning">No game found with code <b>${code}</b></div>`;
+    resultEl.innerHTML = `<div class="alert-warning">❌ No game found with code <b>${code}</b></div>`;
     return;
   }
   
@@ -1353,24 +1982,26 @@ window.searchGameCode = async function() {
   
   let html = `
     <div class="stat-card" style="margin:1rem 0;">
-      <h3>${gameType} Details</h3>
-      <div><strong>Code:</strong> ${code}</div>
-      <div><strong>Status:</strong> <span class="status-badge ${found.status}">${found.status}</span></div>
-      <div><strong>Bet Amount:</strong> ${ETB(found.bet||0)}</div>
-      <div><strong>House Revenue:</strong> ${ETB(revenue)}</div>
-      <div><strong>Created:</strong> ${formatDate(found.created_at)}</div>
-      ${found.winner ? `<div><strong>Winner:</strong> ${found.winner}</div>` : ''}
+      <h3>🎮 ${gameType} Details</h3>
+      <div style="display:grid;gap:0.5rem;margin-top:1rem;">
+        <div><strong>Code:</strong> <code style="background:#f7fafc;padding:0.25rem 0.5rem;border-radius:4px;">${code}</code></div>
+        <div><strong>Status:</strong> <span class="status-badge ${found.status}">${found.status}</span></div>
+        <div><strong>Bet Amount:</strong> <strong>${ETB(found.bet||0)}</strong></div>
+        <div><strong>House Revenue:</strong> <strong style="color:#48bb78;">${ETB(revenue)}</strong></div>
+        <div><strong>Created:</strong> ${formatDate(found.created_at)}</div>
+        ${found.winner ? `<div><strong>Winner:</strong> <span style="color:#48bb78;font-weight:600;">${found.winner}</span></div>` : ''}
+      </div>
     </div>
     
-    <div class="section-title">Complete Game Data</div>
-    <div style="max-height:400px;overflow-y:auto;background:#f8f9fa;padding:1rem;border-radius:0.5rem;">
+    <div class="section-title">📋 Complete Game Data</div>
+    <div style="max-height:400px;overflow-y:auto;background:white;padding:1.5rem;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
   `;
   
   Object.entries(found).forEach(([k,v])=>{
     if (typeof v === 'object' && v!==null) {
-      html += `<div style="margin:0.5rem 0;"><strong>${k}:</strong><br><pre style="background:#fff;padding:0.5rem;border-radius:0.3rem;overflow-x:auto;margin-top:0.2rem;">${JSON.stringify(v,null,2)}</pre></div>`;
+      html += `<div style="margin:0.75rem 0;"><strong>${k}:</strong><br><pre style="background:#f7fafc;padding:0.75rem;border-radius:8px;overflow-x:auto;margin-top:0.5rem;">${JSON.stringify(v,null,2)}</pre></div>`;
     } else {
-      html += `<div style="margin:0.3rem 0;"><strong>${k}:</strong> ${v===null?'<em>null</em>':v}</div>`;
+      html += `<div style="margin:0.5rem 0;"><strong>${k}:</strong> ${v===null?'<em>null</em>':v}</div>`;
     }
   });
   html += '</div>';
@@ -1385,7 +2016,7 @@ window.advancedGameSearch = async function() {
   const dateFrom = document.getElementById('search-date-from').value;
   
   const resultEl = document.getElementById('advanced-search-results');
-  resultEl.innerHTML = '<div>Searching...</div>';
+  resultEl.innerHTML = '<div style="text-align:center;padding:2rem;"><div class="loading-spinner"></div><br>Searching...</div>';
   
   const tables = gameType ? [gameType] : ['card_games', 'chess_games', 'guess_number_games'];
   let allResults = [];
@@ -1412,7 +2043,7 @@ window.advancedGameSearch = async function() {
   allResults.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
   
   if (allResults.length === 0) {
-    resultEl.innerHTML = '<div class="alert-warning">No games found matching your criteria.</div>';
+    resultEl.innerHTML = '<div class="alert-warning">❌ No games found matching your criteria.</div>';
     return;
   }
   
@@ -1421,39 +2052,53 @@ window.advancedGameSearch = async function() {
   
   resultEl.innerHTML = `
     <div class="alert-info">
-      Found <strong>${allResults.length}</strong> games. 
-      Total house revenue: <strong>${ETB(totalRevenue)}</strong>
+      ✅ Found <strong>${allResults.length}</strong> games. 
+      Total house revenue: <strong style="color:#48bb78;">${ETB(totalRevenue)}</strong>
     </div>
     
-    <table class="main-table">
-      <thead>
-        <tr><th>Type</th><th>Code</th><th>Players</th><th>Bet</th><th>Status</th><th>Winner</th><th>Revenue</th><th>Date</th></tr>
-      </thead>
-      <tbody>
-        ${allResults.slice(0,50).map(g => {
-          const revenue = g.status === 'finished' ? Number(g.bet||0) * 2 * 0.20 : 0;
-          const p1 = g.creator_username || g.white_username || '-';
-          const p2 = g.opponent_username || g.black_username || '-';
-          return `
-          <tr onclick="showGameDetails('${g.gameType}','${g.code}')" style="cursor:pointer;">
-            <td>${g.gameType.replace('_',' ')}</td>
-            <td><strong>${g.code}</strong></td>
-            <td>${p1}${p2 !== '-' ? ` vs ${p2}` : ''}</td>
-            <td>${ETB(g.bet||0)}</td>
-            <td><span class="status-badge ${g.status}">${g.status}</span></td>
-            <td>${g.winner||'-'}</td>
-            <td>${ETB(revenue)}</td>
-            <td>${formatDate(g.created_at)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-    ${allResults.length > 50 ? `<div style="text-align:center;margin:1rem 0;color:#666;">Showing first 50 of ${allResults.length} results</div>` : ''}
+    <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+      <table class="main-table">
+        <thead>
+          <tr><th>Type</th><th>Code</th><th>Players</th><th>Bet</th><th>Status</th><th>Winner</th><th>Revenue</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          ${allResults.slice(0,50).map(g => {
+            const revenue = g.status === 'finished' ? Number(g.bet||0) * 2 * 0.20 : 0;
+            const p1 = g.creator_username || g.white_username || '-';
+            const p2 = g.opponent_username || g.black_username || '-';
+            return `
+            <tr onclick="showGameDetails('${g.gameType}','${g.code}')" style="cursor:pointer;">
+              <td><span style="font-weight:600;">${g.gameType.replace('_',' ')}</span></td>
+              <td><code style="background:#f7fafc;padding:0.25rem 0.5rem;border-radius:4px;">${g.code}</code></td>
+              <td>${p1}${p2 !== '-' ? ` vs ${p2}` : ''}</td>
+              <td><strong>${ETB(g.bet||0)}</strong></td>
+              <td><span class="status-badge ${g.status}">${g.status}</span></td>
+              <td>${g.winner||'-'}</td>
+              <td><strong style="color:#48bb78;">${ETB(revenue)}</strong></td>
+              <td>${formatDate(g.created_at)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      ${allResults.length > 50 ? `<div style="text-align:center;padding:1rem;color:#718096;border-top:1px solid #f7fafc;">Showing first 50 of ${allResults.length} results</div>` : ''}
+    </div>
   `;
 }
 
 // ---- INITIALIZATION ----
 showTab('dashboard');
+
+// Auto-refresh dashboard every 5 minutes
+setInterval(() => {
+  const activeTab = document.querySelector('.nav-tabs .active').getAttribute('data-tab');
+  if (activeTab === 'dashboard') {
+    loadDashboard();
+  }
+  updatePendingBadge();
+}, 5 * 60 * 1000);
+
+// Initial pending badge update
+updatePendingBadge();
 </script>
 </body>
 </html>
